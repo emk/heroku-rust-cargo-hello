@@ -11,7 +11,7 @@ name = "hello"
 [dependencies.iron]
 
 git = "https://github.com/iron/iron.git"
-rev = "f15578c05db1cd633c693a1b04d1ddb815d9b60a"
+#rev = "f15578c05db1cd633c693a1b04d1ddb815d9b60a"
 
 #[dependencies.router]
 #
