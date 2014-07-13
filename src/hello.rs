@@ -9,7 +9,7 @@ extern crate router;
 use std::os::getenv;
 use std::io::IoError;
 use std::io::net::ip::{Ipv4Addr, Port};
-use http::status::Ok;
+use http::status::{Ok,NotFound};
 use http::method::Get;
 use iron::{Iron, Chain, Alloy, Request, Response, Server, Status, Unwind, FromFn};
 use iron::mixin::Serve;
@@ -34,8 +34,15 @@ fn hello(_req: &mut Request, res: &mut Response, _alloy: &mut Alloy) -> Status {
 fn hello_name(_req: &mut Request, res: &mut Response,
               alloy: &mut Alloy) -> Status {    
     let name = alloy.find::<Params>().unwrap().get("name").unwrap();
-    let message = format!("Hello, {}!", name);
-    log_serve_errors(res.serve(Ok, message));
+    log_serve_errors(res.serve(Ok, format!("Hello, {}!", name)));
+    Unwind
+}
+
+// We need to handle 404 manually or else Iron just sends back an empty
+// response.
+fn not_found(_req: &mut Request, res: &mut Response,
+             _alloy: &mut Alloy) -> Status {
+    log_serve_errors(res.serve(NotFound, "Not found."));
     Unwind
 }
 
@@ -58,5 +65,6 @@ fn main() {
     let mut server: Server = Iron::new();
     server.chain.link(logger);
     server.chain.link(router);
+    server.chain.link(FromFn::new(not_found));
     server.listen(Ipv4Addr(0, 0, 0, 0), get_server_port());
 }
