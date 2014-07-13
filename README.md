@@ -15,13 +15,14 @@ Aren't pre-1.0 compilers fun?
 For an older version of this application which actually deploys reliably,
 see [heroku-rust-hello][].
 
-## Updating the compiler and Cargo executables
+### Updating the compiler and Cargo executables
 
 Grab the latest nightly builds from the usual location:
 
 ``` sh
 curl -O http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
 curl -O http://static.rust-lang.org/cargo-dist/cargo-nightly-linux.tar.gz
+```
 
 Then upload these files to an S3 bucket or a webserver that you control,
 and edit `RustConfig` to point to the appropriate URLs.
@@ -29,7 +30,7 @@ and edit `RustConfig` to point to the appropriate URLs.
 To install these files locally, see installation instructions for
 [Rust][rust-install] and [Cargo][cargo-install].
 
-## Building locally
+### Building locally
 
 To build and run:
 
