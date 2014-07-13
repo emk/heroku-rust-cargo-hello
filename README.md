@@ -3,7 +3,7 @@ To deploy this application to Heroku, try running:
 ``` sh
 git clone https://github.com/emk/heroku-rust-cargo-hello.git
 cd heroku-rust-cargo-hello
-heroku create --buildpack https://github.com/ddollar/heroku-buildpack-multi
+heroku create --buildpack https://github.com/ddollar/heroku-buildpack-multi.git
 git push heroku master
 ```
 
