@@ -3,6 +3,7 @@
 #[phase(plugin, link)] extern crate log;
 extern crate http;
 extern crate iron;
+extern crate logger;
 extern crate router;
 
 use std::os::getenv;
@@ -12,6 +13,7 @@ use http::status::Ok;
 use http::method::Get;
 use iron::{Iron, Chain, Alloy, Request, Response, Server, Status, Unwind, FromFn};
 use iron::mixin::Serve;
+use logger::Logger;
 use router::{Router, Params};
 
 // Log errors that we can't report to the user.
@@ -46,6 +48,7 @@ fn get_server_port() -> Port {
 
 /// Configure and run our server.
 fn main() {
+    let logger = Logger::new(None);
     let mut router = Router::new();
 
     router.route(Get, "/".to_string(), vec![], FromFn::new(hello));
@@ -53,6 +56,7 @@ fn main() {
                  FromFn::new(hello_name));
 
     let mut server: Server = Iron::new();
+    server.chain.link(logger);
     server.chain.link(router);
     server.listen(Ipv4Addr(0, 0, 0, 0), get_server_port());
 }

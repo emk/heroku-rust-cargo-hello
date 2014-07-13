@@ -17,6 +17,10 @@ git = "https://github.com/iron/iron.git"
 # attempt to use conflicting versions and get confused.
 #rev = "f15578c05db1cd633c693a1b04d1ddb815d9b60a"
 
+[dependencies.logger]
+
+git = "https://github.com/iron/logger.git"
+
 [dependencies.router]
 
 git = "https://github.com/iron/router.git"
