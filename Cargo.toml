@@ -12,15 +12,6 @@ name = "hello"
 
 git = "https://github.com/iron/iron.git"
 
-# In theory, we could lock versions as follows, but this won't work yet
-# if any of our dependencies leave 'rev' unspecified, because Cargo will
-# attempt to use conflicting versions and get confused.
-#rev = "f15578c05db1cd633c693a1b04d1ddb815d9b60a"
-
-[dependencies.logger]
-
-git = "https://github.com/iron/logger.git"
-
 [dependencies.router]
 
 git = "https://github.com/iron/router.git"
