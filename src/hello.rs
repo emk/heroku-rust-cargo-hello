@@ -32,5 +32,5 @@ fn main() {
     let mut router = Router::new();
     router.get("/", hello);
     router.get("/:name", hello_name);
-    Iron::new(router).listen(Ipv4Addr(127, 0, 0, 1), get_server_port());
+    Iron::new(router).listen(Ipv4Addr(0, 0, 0, 0), get_server_port());
 }
