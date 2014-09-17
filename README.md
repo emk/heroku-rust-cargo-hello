@@ -3,50 +3,60 @@ To deploy this application to Heroku, try running:
 ``` sh
 git clone https://github.com/emk/heroku-rust-cargo-hello.git
 cd heroku-rust-cargo-hello
-heroku create --buildpack https://github.com/ddollar/heroku-buildpack-multi.git
+heroku create --buildpack https://github.com/emk/heroku-buildpack-rust.git
 git push heroku master
 ```
 
-This will probably fail, because `RustConfig` locks down a specific version
-of Rust and Cargo, but the `Cargo.toml` file allows our library versions to
-float free, so we'll wind up with mismatched compilers and libraries.
-Aren't pre-1.0 compilers fun?
-
-For an older version of this application which actually deploys reliably,
-see [heroku-rust-hello][].
-
-### Updating the compiler and Cargo executables
-
-Grab the latest nightly builds from the usual location:
-
-``` sh
-curl -O http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
-curl -O http://static.rust-lang.org/cargo-dist/cargo-nightly-linux.tar.gz
-```
-
-Then upload these files to an S3 bucket or a webserver that you control,
-and edit `RustConfig` to point to the appropriate URLs.
-
-To install these files locally, see installation instructions for
-[Rust][rust-install] and [Cargo][cargo-install].
+This should make a local copy of this application and deploy it to Heroku.
 
 ### Building locally
 
-To build and run:
+If you trust the Rust maintainers with root access to your machine, run:
 
 ``` sh
-cargo build --verbose
+curl -s https://static.rust-lang.org/rustup.sh | sudo sh
+```
+
+Then run:
+
+``` sh
+cd heroku-rust-cargo-hello
+cargo build
+```
+
+To run the binary, try:
+
+``` sh
 PORT=5000 target/hello
 ```
 
 Then visit `0.0.0.0:5000` in your browser.  This is based on the
 [iron middleware framework][iron].
 
-Note that we use need to use `heroku-buildpack-multi` and
-`heroku-buildpack-git` to upgrade Heroku's `git` from 1.7.0 (I think) to
-something a bit newer.  This will eventually be simplified.
+For further information on Rust, see the [Rust Guide][guide].
 
-[rust-install]: http://doc.rust-lang.org/tutorial.html#getting-started
-[cargo-install]: https://github.com/rust-lang/cargo
-[heroku-rust-hello]: https://github.com/emk/heroku-rust-hello
 [iron]: https://github.com/iron/iron
+[guide]: http://doc.rust-lang.org/guide.html
+
+### Updating to the latest Rust
+
+Grab the latest nightly builds from the usual location:
+
+``` sh
+curl -O https://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz
+curl -O https://static.rust-lang.org/cargo-dist/cargo-nightly-x86_64-unknown-linux-gnu.tar.gz
+```
+
+Then upload these files to an S3 bucket or a webserver that you control,
+and edit `RustConfig` to point to the appropriate URLs.  While editing
+`RustConfig`, also update `VERSION` and `CARGO_VERSION` to have the correct
+date.
+
+To update your library dependencies, run:
+
+``` sh
+cargo update
+```
+
+Now try to build.  With luck, it shouldn't take too long to adapt to any
+API changes.
