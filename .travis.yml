@@ -7,7 +7,8 @@
 # new Heroku Rust applications.  If you're using this script in your own
 # project, you probably want to install Rust from known-good tarballs and
 # omit the "cargo update" step.
+#
+# Our nightly Travis CI pings are courtesy of http://www.rust-ci.org/ .
 language: "rust"
-install: "curl -s https://static.rust-lang.org/rustup.sh | sudo sh"
 before_script: "cargo update"
 script: "cargo build"
