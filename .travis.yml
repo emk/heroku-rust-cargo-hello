@@ -1,0 +1,12 @@
+# This Travis CI configuration allows us to test our example application
+# against the latest version of the Rust compiler and our supporting
+# libraries.
+#
+# This is only necessary because we want to update the example code
+# whenever it falls out of date, to make life simpler for people creating
+# new Heroku Rust applications.  If you're using this script in your own
+# project, you probably want to install Rust from known-good tarballs and
+# omit the "cargo update" step.
+install: "curl -s https://static.rust-lang.org/rustup.sh | sudo sh"
+before_script: "cargo update"
+script: "cargo build"
