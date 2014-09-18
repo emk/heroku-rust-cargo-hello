@@ -36,7 +36,8 @@ fn main() {
     router.get("/", hello);
     router.get("/:name", hello_name);
 
-    // Create a chain with our router and a logger.
+    // Create a chain with our router and a logger.  This doesn't work well
+    // on Heroku yet; see https://github.com/iron/logger/issues/42 .
     let mut chain = ChainBuilder::new(router);
     let (logger_before, logger_after) = Logger::new(None);
     chain.link_before(logger_before);
