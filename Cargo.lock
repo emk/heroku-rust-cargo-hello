@@ -3,6 +3,7 @@ name = "heroku-rust-cargo-hello"
 version = "1.0.0"
 dependencies = [
  "iron 0.0.1 (git+https://github.com/iron/iron.git#7029d377d23e20dbc4666e6fd7785a9390ff2a39)",
+ "logger 0.1.0 (git+https://github.com/iron/logger.git#7ace037e8a7af67779fe1bde2161236e53bbdbe7)",
  "router 0.1.0 (git+https://github.com/iron/router.git#bd870b17558abe44fb48f0aa827066cac9dce29c)",
 ]
 
@@ -32,7 +33,7 @@ name = "http"
 version = "0.1.0-pre"
 source = "git+https://github.com/chris-morgan/rust-http.git#c1d601c1150ec6e10067dc0e022590277985b785"
 dependencies = [
- "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git#cec41181c04e7ad4e644034d870626571acbdbdb)",
+ "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git#cc7511a3329ae07df6bb658391fe19e8115e7f52)",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
 ]
 
@@ -44,16 +45,25 @@ dependencies = [
  "content_type 0.1.0 (git+https://github.com/reem/rust-http-content-type.git#635e92b75e0f3f84a181bce37dbd2f22cfa8d730)",
  "error 0.0.0 (git+https://github.com/reem/rust-error.git#5aaaa164be03f324edd8c7b6b31ce3e507a582d5)",
  "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git#c1d601c1150ec6e10067dc0e022590277985b785)",
- "plugin 0.0.0 (git+https://github.com/reem/rust-plugin.git#3f2a70b1d63b858858053bb89746f8e5726119a8)",
+ "plugin 0.0.0 (git+https://github.com/reem/rust-plugin.git#19b97b79ed3fb291cd6d454058c906e33017a0b6)",
  "replace-map 0.0.1 (git+https://github.com/reem/rust-replace-map.git#2bbe0c9352f1a781293e52e88d21f79644a405a9)",
  "typemap 0.0.0 (git+https://github.com/reem/rust-typemap.git#895f26e24cfb7be08920895f7c549970b81a9586)",
  "url 0.1.0 (git+https://github.com/servo/rust-url#bfdf809365600a7941a77524f9bb065886de3379)",
 ]
 
 [[package]]
+name = "logger"
+version = "0.1.0"
+source = "git+https://github.com/iron/logger.git#7ace037e8a7af67779fe1bde2161236e53bbdbe7"
+dependencies = [
+ "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git#c1d601c1150ec6e10067dc0e022590277985b785)",
+ "iron 0.0.1 (git+https://github.com/iron/iron.git#7029d377d23e20dbc4666e6fd7785a9390ff2a39)",
+]
+
+[[package]]
 name = "openssl"
 version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-openssl.git#cec41181c04e7ad4e644034d870626571acbdbdb"
+source = "git+https://github.com/sfackler/rust-openssl.git#cc7511a3329ae07df6bb658391fe19e8115e7f52"
 
 [[package]]
 name = "phantom"
@@ -63,7 +73,7 @@ source = "git+https://github.com/reem/rust-phantom.git#deb5acfed56d485bcb2d498da
 [[package]]
 name = "plugin"
 version = "0.0.0"
-source = "git+https://github.com/reem/rust-plugin.git#3f2a70b1d63b858858053bb89746f8e5726119a8"
+source = "git+https://github.com/reem/rust-plugin.git#19b97b79ed3fb291cd6d454058c906e33017a0b6"
 dependencies = [
  "phantom 0.0.0 (git+https://github.com/reem/rust-phantom.git#deb5acfed56d485bcb2d498da51477a12cb081c3)",
  "typemap 0.0.0 (git+https://github.com/reem/rust-typemap.git#895f26e24cfb7be08920895f7c549970b81a9586)",
