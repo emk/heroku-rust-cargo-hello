@@ -1,2 +1,2 @@
-web: ./target/hello
+web: ./target/release/hello
 
