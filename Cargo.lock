@@ -9,7 +9,7 @@ dependencies = [
 [[package]]
 name = "content_type"
 version = "0.1.0"
-source = "git+https://github.com/reem/rust-http-content-type.git#5c417bd09452cac2a8aa64737871cd887758d926"
+source = "git+https://github.com/reem/rust-http-content-type.git#096be5c074b238cf2f8f01340a45aa020d9ab4b4"
 dependencies = [
  "generator 0.1.0 (git+https://github.com/reem/rust-http-content-type.git)",
  "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git)",
@@ -32,7 +32,7 @@ dependencies = [
 [[package]]
 name = "generator"
 version = "0.1.0"
-source = "git+https://github.com/reem/rust-http-content-type.git#5c417bd09452cac2a8aa64737871cd887758d926"
+source = "git+https://github.com/reem/rust-http-content-type.git#096be5c074b238cf2f8f01340a45aa020d9ab4b4"
 dependencies = [
  "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git)",
  "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf.git)",
@@ -51,7 +51,7 @@ dependencies = [
 [[package]]
 name = "iron"
 version = "0.0.1"
-source = "git+https://github.com/iron/iron.git#b6d4afabbea180db359b9d4f17f64c526ee2d9dd"
+source = "git+https://github.com/iron/iron.git#0d01602312ebf06606cc26b59c927c6219329691"
 dependencies = [
  "content_type 0.1.0 (git+https://github.com/reem/rust-http-content-type.git)",
  "error 0.0.0 (git+https://github.com/reem/rust-error.git)",
