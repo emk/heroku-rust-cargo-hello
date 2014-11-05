@@ -4,20 +4,27 @@ extern crate router;
 
 use std::os::getenv;
 use std::io::net::ip::{Ipv4Addr, Port};
-use iron::{Iron, Request, Response, IronResult};
+use iron::{Iron, Request, Response, IronResult, Set};
+use iron::response::modifiers::{Status, Body};
 use iron::status;
 use router::{Router, Params};
 
 // Serves a string to the user.  Try accessing "/".
 fn hello(_: &mut Request) -> IronResult<Response> {
-    Ok(Response::with(status::Ok, "Hello world!"))
+    let resp = Response::new()
+        .set(Status(status::Ok))
+        .set(Body("Hello world!"));
+    Ok(resp)
 }
 
 // Serves a customized string to the user.  Try accessing "/world".
 fn hello_name(req: &mut Request) -> IronResult<Response> {
     let params = req.extensions.find::<Router,Params>().unwrap();
     let name = params.find("name").unwrap();
-    Ok(Response::with(status::Ok, format!("Hello, {}!", name)))
+    let resp = Response::new()
+        .set(Status(status::Ok))
+        .set(Body(format!("Hello, {}!", name)));
+    Ok(resp)
 }
 
 /// Look up our server port number in PORT, for compatibility with Heroku.
