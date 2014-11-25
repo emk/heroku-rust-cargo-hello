@@ -1,4 +1,3 @@
-extern crate http;
 extern crate iron;
 extern crate router;
 
@@ -19,7 +18,7 @@ fn hello(_: &mut Request) -> IronResult<Response> {
 
 // Serves a customized string to the user.  Try accessing "/world".
 fn hello_name(req: &mut Request) -> IronResult<Response> {
-    let params = req.extensions.find::<Router,Params>().unwrap();
+    let params = req.extensions.get::<Router,Params>().unwrap();
     let name = params.find("name").unwrap();
     let resp = Response::new()
         .set(Status(status::Ok))
@@ -42,5 +41,8 @@ fn main() {
     router.get("/:name", hello_name);
 
     // Run the server.
-    Iron::new(router).listen(Ipv4Addr(0, 0, 0, 0), get_server_port());
+    match Iron::new(router).listen((Ipv4Addr(0, 0, 0, 0), get_server_port())) {
+        Ok(_) => {},
+        Err(ref err) => { println!("error starting server: {}", err); }
+    }
 }

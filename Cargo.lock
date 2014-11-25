@@ -2,151 +2,170 @@
 name = "heroku-rust-cargo-hello"
 version = "1.0.0"
 dependencies = [
- "iron 0.0.1 (git+https://github.com/iron/iron.git)",
- "router 0.1.0 (git+https://github.com/iron/router.git)",
+ "iron 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "router 0.0.1 (git+https://github.com/iron/router.git)",
 ]
 
 [[package]]
-name = "content_type"
-version = "0.1.0"
-source = "git+https://github.com/reem/rust-http-content-type.git#096be5c074b238cf2f8f01340a45aa020d9ab4b4"
+name = "cookie"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "generator 0.1.0 (git+https://github.com/reem/rust-http-content-type.git)",
- "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git)",
- "phf 0.0.0 (git+https://github.com/sfackler/rust-phf.git)",
+ "openssl 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "encoding"
-version = "0.1.0"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a739425a3f3174a31fe38c158dcaf22ea1d856f4"
 
 [[package]]
 name = "error"
-version = "0.0.0"
-source = "git+https://github.com/reem/rust-error.git#c068c32136431a676f55e9050002225059d523a6"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "typeable 0.0.1 (git+https://github.com/reem/rust-typeable.git)",
+ "typeable 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "generator"
-version = "0.1.0"
-source = "git+https://github.com/reem/rust-http-content-type.git#096be5c074b238cf2f8f01340a45aa020d9ab4b4"
-dependencies = [
- "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git)",
- "phf_mac 0.0.0 (git+https://github.com/sfackler/rust-phf.git)",
- "url 0.1.0 (git+https://github.com/servo/rust-url.git)",
-]
+name = "gcc"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "http"
-version = "0.1.0-pre"
-source = "git+https://github.com/chris-morgan/rust-http.git#c8aef7e0192161aa528ed067fad85bd353088a52"
+name = "hyper"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git)",
- "url 0.1.0 (git+https://github.com/servo/rust-url.git)",
+ "cookie 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mime 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "typeable 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unsafe-any 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "iron"
-version = "0.0.1"
-source = "git+https://github.com/iron/iron.git#0d01602312ebf06606cc26b59c927c6219329691"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "content_type 0.1.0 (git+https://github.com/reem/rust-http-content-type.git)",
- "error 0.0.0 (git+https://github.com/reem/rust-error.git)",
- "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git)",
- "modifier 0.0.1 (git+https://github.com/reem/rust-modifier.git)",
- "plugin 0.0.0 (git+https://github.com/reem/rust-plugin.git)",
- "typemap 0.0.0 (git+https://github.com/reem/rust-typemap.git)",
- "url 0.1.0 (git+https://github.com/servo/rust-url.git)",
+ "error 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "hyper 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "modifier 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "plugin 0.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "typemap 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "libressl-pnacl-sys"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "pnacl-build-helper 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "mime"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "modifier"
 version = "0.0.1"
-source = "git+https://github.com/reem/rust-modifier.git#13bec5504b5c1e37b168a0e5bff602f5ddf99c18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "stainless 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "openssl"
-version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-openssl.git#1e706b8ef4d4344b5297b90bcd430cc96f40fb39"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libressl-pnacl-sys 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-sys 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "openssl-sys"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "pkg-config 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "phantom"
-version = "0.0.0"
-source = "git+https://github.com/reem/rust-phantom.git#deb5acfed56d485bcb2d498da51477a12cb081c3"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "phf"
-version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-phf.git#18a5ecc028055c3dbd650cc5a064b6fb033d82ef"
-dependencies = [
- "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
-]
-
-[[package]]
-name = "phf_mac"
-version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-phf.git#18a5ecc028055c3dbd650cc5a064b6fb033d82ef"
-dependencies = [
- "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
-]
+name = "pkg-config"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "plugin"
 version = "0.0.0"
-source = "git+https://github.com/reem/rust-plugin.git#2ceda584cca8c1f1a2f3251d8a804e41500ea122"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phantom 0.0.0 (git+https://github.com/reem/rust-phantom.git)",
- "typemap 0.0.0 (git+https://github.com/reem/rust-typemap.git)",
+ "phantom 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "typemap 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
+name = "pnacl-build-helper"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "route-recognizer"
-version = "0.1.0"
-source = "git+https://github.com/conduit-rust/route-recognizer.rs.git#217988b4b6182e678333d9d876b51985ae290535"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "router"
-version = "0.1.0"
-source = "git+https://github.com/iron/router.git#9f97c82a7f2aba3575924afa54539997eedee3d3"
+version = "0.0.1"
+source = "git+https://github.com/iron/router.git#b7f3476574f940e4e526134b225a4b384cefe374"
 dependencies = [
- "http 0.1.0-pre (git+https://github.com/chris-morgan/rust-http.git)",
- "iron 0.0.1 (git+https://github.com/iron/iron.git)",
- "route-recognizer 0.1.0 (git+https://github.com/conduit-rust/route-recognizer.rs.git)",
- "typemap 0.0.0 (git+https://github.com/reem/rust-typemap.git)",
+ "iron 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "route-recognizer 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "stainless"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "time"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gcc 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "typeable"
-version = "0.0.1"
-source = "git+https://github.com/reem/rust-typeable.git#55154e1809db8ceec8f8519bdbb638c2fbd712f5"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "typemap"
-version = "0.0.0"
-source = "git+https://github.com/reem/rust-typemap.git#e29b9c99827b469a9a3cc62a1e8c4f023946bce5"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "phantom 0.0.0 (git+https://github.com/reem/rust-phantom.git)",
- "unsafe-any 0.1.0 (git+https://github.com/reem/rust-unsafe-any.git)",
+ "phantom 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unsafe-any 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "unsafe-any"
 version = "0.1.0"
-source = "git+https://github.com/reem/rust-unsafe-any.git#2863af363bbd83079b6773920bba5b736408db33"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "url"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-url.git#9142b86a812ac5bc886f76235585557d8e002246"
-dependencies = [
- "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding)",
-]
-
-[[package]]
-name = "xxhash"
-version = "0.0.1"
-source = "git+https://github.com/Jurily/rust-xxhash#7e4174e780af0cfb29a5e53ede0b987adca16396"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
