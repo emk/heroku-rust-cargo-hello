@@ -1,5 +1,5 @@
-URL="https://s3.amazonaws.com/rust-builds/2015-01-16/rust-nightly-x86_64-unknown-linux-gnu.tar.gz"
-VERSION="2015-01-16"
+URL="https://s3.amazonaws.com/rust-builds/2015-01-20/rust-nightly-x86_64-unknown-linux-gnu.tar.gz"
+VERSION="2015-01-20"
 
-CARGO_URL="https://s3.amazonaws.com/rust-builds/2015-01-16/cargo-nightly-x86_64-unknown-linux-gnu.tar.gz"
-CARGO_VERSION="2015-01-16"
+CARGO_URL="https://s3.amazonaws.com/rust-builds/2015-01-20/cargo-nightly-x86_64-unknown-linux-gnu.tar.gz"
+CARGO_VERSION="2015-01-20"

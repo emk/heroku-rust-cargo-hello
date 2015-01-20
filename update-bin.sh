@@ -42,7 +42,7 @@ aws s3 cp "$RUST_TARBALL" "s3://$BUCKET/$DATE/" --acl public-read
 aws s3 cp "$CARGO_TARBALL" "s3://$BUCKET/$DATE/" --acl public-read
 
 # Updating RustConfig.
-echo "-----> Uploading RustConfig"
+echo "-----> Updating RustConfig"
 cat <<EOF > RustConfig
 URL="https://s3.amazonaws.com/$BUCKET/$DATE/$RUST_TARBALL"
 VERSION="$DATE"
