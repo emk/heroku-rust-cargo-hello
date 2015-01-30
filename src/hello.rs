@@ -1,11 +1,13 @@
-#![allow(unstable)]
+#![feature(os)]
+#![feature(io)]
+#![feature(core)]
 
 extern crate iron;
 extern crate router;
 
 use std::str::FromStr;
 use std::os::getenv;
-use std::io::net::ip::{Ipv4Addr, Port};
+use std::old_io::net::ip::{Ipv4Addr, Port};
 use iron::{Iron, Request, Response, IronResult};
 use router::Router;
 use iron::status;
@@ -27,7 +29,7 @@ fn hello_name(req: &mut Request) -> IronResult<Response> {
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> Port {
     getenv("PORT")
-        .and_then(|s| FromStr::from_str(s.as_slice()))
+        .and_then(|s| FromStr::from_str(&s[]))
         .unwrap_or(8080)
 }
 
