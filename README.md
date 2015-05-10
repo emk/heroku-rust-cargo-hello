@@ -20,6 +20,10 @@ For further instructions, see
 
 ### Does this work with the latest version of Rust?
 
+This application works with version 1.0.0-beta.4 of Rust, which
+theoretically means that any future language breakage should be minimal.
+However, Iron's API is not yet officially stable.
+
 If this is green, then you should be able to install the latest Rust
 compiler, run `cargo update` and build this code successfully:
 
