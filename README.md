@@ -15,8 +15,10 @@ This should make a local copy of this application and deploy it to Heroku.
 
 For further instructions, see
 [Deploying Rust applications to Heroku, with example code for Iron][instructions].
+You may also be interested in the [source code for the buildpack][buildpack].
 
 [instructions]: http://www.randomhacks.net/2014/09/17/deploying-rust-heroku-iron/
+[buildpack]: https://github.com/emk/heroku-buildpack-rust
 
 ### Does this work with the latest version of Rust?
 
