@@ -4,6 +4,14 @@ name = "heroku-rust-cargo-hello"
 version = "1.0.0"
 authors = ["me@example.com"]
 
+[features]
+# This allows us to use `#[cfg(unstable)]` to conditionalize the use of
+# unstable Rust features from the nightly builds.  This is handy if we want
+# to use, say, benchmaking from the `test` library when available.  Also,
+# `travis-cargo` expects this to be here when building against the nightly
+# version of Cargo.
+unstable = []
+
 [[bin]]
 name = "hello"
 

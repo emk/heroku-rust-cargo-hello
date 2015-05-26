@@ -1,14 +1,17 @@
-# This Travis CI configuration allows us to test our example application
-# against the latest version of the Rust compiler and our supporting
-# libraries.
-#
-# This is only necessary because we want to update the example code
-# whenever it falls out of date, to make life simpler for people creating
-# new Heroku Rust applications.  If you're using this script in your own
-# project, you probably want to install Rust from known-good tarballs and
-# omit the "cargo update" step.
-#
-# Our nightly Travis CI pings are courtesy of http://www.rust-ci.org/ .
-language: "rust"
-before_script: "cargo update"
-script: "cargo build"
+language: rust
+sudo: required
+rust:
+- nightly
+- beta
+- 1.0.0
+before_script:
+- |
+  pip install 'travis-cargo<0.2' --user &&
+  export PATH=$HOME/.local/bin:$PATH
+script:
+- |
+  travis-cargo build &&
+  travis-cargo test
+env:
+  global:
+  - secure: bYuY2VgTHzglMUSDzv4l9aSTiaPPrwoP1MGqxqwo9QpEmvLhRB1mrEwb+I2h6rak/wetSGyMoo4CMXcrzcXNJWy9+qvsy2/LD6/7NK7zXKNOVZjce2jcaUGmnvUsLNzBW3pf0lyaTfEEctg1zx6Zzh0McWaKUjKDFhCYzXgNfws=
