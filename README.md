@@ -40,3 +40,13 @@ If the build is failing, you have two choices:
    refrain from running `cargo update`.
 2. Update the code to work with the latest release of Rust.  Please feel
    free to send me a pull request!
+
+### Does this work with Cloud Foundry?
+
+The application can be deployed to Cloud Foundry as an alternative to
+Heroku. From the command line, run:
+
+``` sh
+cd heroku-rust-cargo-hello
+cf push heroku-rust-cargo-hello -b https://github.com/emk/heroku-buildpack-rust.git
+```
