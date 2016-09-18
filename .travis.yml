@@ -3,7 +3,7 @@ sudo: required
 rust:
 - nightly
 - beta
-- 1.0.0
+- 1.11.0
 before_script:
 - |
   pip install 'travis-cargo<0.2' --user &&
