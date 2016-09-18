@@ -30,9 +30,9 @@ fn get_server_port() -> u16 {
 /// Configure and run our server.
 fn main() {
     // Set up our URL router.
-    let mut router = Router::new();
-    router.get("/", hello);
-    router.get("/:name", hello_name);
+    let mut router: Router = Router::new();
+    router.get("/", hello, "index");
+    router.get("/:name", hello_name, "name");
 
     // Run the server.
     Iron::new(router).http(("0.0.0.0", get_server_port())).unwrap();
