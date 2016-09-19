@@ -16,7 +16,7 @@ unstable = []
 name = "hello"
 
 [dependencies]
-iron = "*"
+iron = "0.4.0"
 
 [dependencies.router]
 git = "https://github.com/iron/router.git"
