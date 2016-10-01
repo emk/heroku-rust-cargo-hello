@@ -1,7 +1,6 @@
 extern crate iron;
 extern crate router;
 
-use std::str::FromStr;
 use std::env;
 use iron::{Iron, Request, Response, IronResult};
 use router::Router;
@@ -24,7 +23,7 @@ fn hello_name(req: &mut Request) -> IronResult<Response> {
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> u16 {
     let port_str = env::var("PORT").unwrap_or(String::new());
-    FromStr::from_str(&port_str).unwrap_or(8080)
+    port_str.parse().unwrap_or(8080)
 }
 
 /// Configure and run our server.
