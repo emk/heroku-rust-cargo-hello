@@ -16,7 +16,10 @@ unstable = []
 name = "hello"
 
 [dependencies]
-iron = "0.4.0"
+hyper = { git = "https://github.com/hyperium/hyper", branch = "master" }
+futures = "0.1.11"
+pretty_env_logger = "0.1"
 
-[dependencies.router]
-git = "https://github.com/iron/router.git"
+
+#[dependencies.router]
+#git = "https://github.com/iron/router.git"
