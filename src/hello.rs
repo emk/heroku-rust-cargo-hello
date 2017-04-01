@@ -32,7 +32,7 @@ impl Echo {
         self.thread_pool
             .spawn_fn(move || {
                 let conn = other_self.redis_pool.get().unwrap();
-                let query = req.query().unwrap();
+                let query = req.query().unwrap_or("Nothing");
                 let last: String = conn.get("zomghi2u").unwrap();
                 let ret: String = conn.set("zomghi2u", query).unwrap();
                 let body = format!("Last person said: {} You said: {}. Got back: {}",
