@@ -1,6 +1,7 @@
 #![deny(warnings)]
 extern crate hyper;
 extern crate futures;
+extern crate futures_cpupool;
 extern crate pretty_env_logger;
 extern crate r2d2;
 extern crate r2d2_redis;
@@ -8,7 +9,9 @@ extern crate redis;
 
 use std::env;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
-use futures::future::FutureResult;
+use futures::Future;
+use futures::future::BoxFuture;
+use futures_cpupool::CpuPool;
 
 use hyper::{Get, Post, StatusCode};
 use hyper::header::ContentLength;
@@ -20,42 +23,40 @@ static INDEX: &'static [u8] = b"Try POST /echo";
 
 #[derive(Clone)]
 struct Echo {
+    thread_pool: CpuPool,
     redis_pool: r2d2::Pool<RedisConnectionManager>,
 }
-
 impl Echo {
-    pub fn new(redis_pool: r2d2::Pool<RedisConnectionManager>) -> Echo {
-        Echo { redis_pool: redis_pool }
+    fn handle_get(&self, _req: Request) -> BoxFuture<Response, hyper::Error> {
+        let res = Response::new()
+            .with_header(ContentLength(INDEX.len() as u64))
+            .with_body(INDEX);
+        self.thread_pool.spawn_fn(move || Ok(res)).boxed()
     }
-}
 
-fn handle_get(_req: Request) -> Response {
-    Response::new()
-        .with_header(ContentLength(INDEX.len() as u64))
-        .with_body(INDEX)
-}
-
-fn handle_post(req: Request) -> Response {
-    let mut res = Response::new();
-    if let Some(len) = req.headers().get::<ContentLength>() {
-        res.headers_mut().set(len.clone());
+    fn handle_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+        let mut res = Response::new();
+        if let Some(len) = req.headers().get::<ContentLength>() {
+            res.headers_mut().set(len.clone());
+        }
+        res = res.with_body(req.body());
+        Box::new(futures::future::ok(res))
     }
-    res.with_body(req.body())
 }
 
 impl Service for Echo {
     type Request = Request;
     type Response = Response;
     type Error = hyper::Error;
-    type Future = FutureResult<Response, hyper::Error>;
+    type Future = BoxFuture<Response, hyper::Error>;
 
     fn call(&self, req: Request) -> Self::Future {
         let resp = match (req.method(), req.path()) {
-            (&Get, "/") | (&Get, "/echo") => handle_get(req),
-            (&Post, "/echo") => handle_post(req),
-            _ => Response::new().with_status(StatusCode::NotFound),
+            (&Get, "/") | (&Get, "/echo") => self.handle_get(req),
+            (&Post, "/echo") => self.handle_post(req),
+            _ => Box::new(futures::future::ok(Response::new().with_status(StatusCode::NotFound))),
         };
-        futures::future::ok(resp)
+        resp
     }
 }
 /// Look up our server port number in PORT, for compatibility with Heroku.
@@ -76,9 +77,16 @@ fn main() {
     pretty_env_logger::init().unwrap();
     // There has got to be a better way specify an ip address.
     let addr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), get_server_port()));
+
+    let thread_pool = CpuPool::new(10);
     let redis_pool = get_redis_pool();
     let server = Http::new()
-        .bind(&addr, move || Ok(Echo::new(redis_pool.clone())))
+        .bind(&addr, move || {
+            Ok(Echo {
+                   thread_pool: thread_pool.clone(),
+                   redis_pool: redis_pool.clone(),
+               })
+        })
         .unwrap();
 
     println!("Listening on http://{} with 1 thread.",
