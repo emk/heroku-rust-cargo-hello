@@ -19,7 +19,6 @@ name = "hello"
 hyper = { git = "https://github.com/hyperium/hyper", branch = "master" }
 futures = "0.1.11"
 pretty_env_logger = "0.1"
-
-
-#[dependencies.router]
-#git = "https://github.com/iron/router.git"
+r2d2_redis = "0.6.0"
+r2d2 = "0.7"
+redis = "0.8.0"
