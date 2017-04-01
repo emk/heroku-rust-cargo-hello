@@ -7,24 +7,37 @@ use std::env;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
 use futures::future::FutureResult;
 
-use hyper::header::{ContentLength, ContentType};
+use hyper::{Get, Post, StatusCode};
+use hyper::header::ContentLength;
 use hyper::server::{Http, Service, Request, Response};
 
-static PHRASE: &'static [u8] = b"Hello World!";
+static INDEX: &'static [u8] = b"Try POST /echo";
 
 #[derive(Clone, Copy)]
-struct Hello;
+struct Echo;
 
-impl Service for Hello {
+impl Service for Echo {
     type Request = Request;
     type Response = Response;
     type Error = hyper::Error;
     type Future = FutureResult<Response, hyper::Error>;
-    fn call(&self, _req: Request) -> Self::Future {
-        futures::future::ok(Response::new()
-                                .with_header(ContentLength(PHRASE.len() as u64))
-                                .with_header(ContentType::plaintext())
-                                .with_body(PHRASE))
+
+    fn call(&self, req: Request) -> Self::Future {
+        futures::future::ok(match (req.method(), req.path()) {
+                                (&Get, "/") | (&Get, "/echo") => {
+                                    Response::new()
+                                        .with_header(ContentLength(INDEX.len() as u64))
+                                        .with_body(INDEX)
+                                }
+                                (&Post, "/echo") => {
+            let mut res = Response::new();
+            if let Some(len) = req.headers().get::<ContentLength>() {
+                res.headers_mut().set(len.clone());
+            }
+            res.with_body(req.body())
+        }
+                                _ => Response::new().with_status(StatusCode::NotFound),
+                            })
     }
 }
 /// Look up our server port number in PORT, for compatibility with Heroku.
@@ -37,7 +50,7 @@ fn main() {
     pretty_env_logger::init().unwrap();
     // There has got to be a better way specify an ip address.
     let addr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), get_server_port()));
-    let server = Http::new().bind(&addr, || Ok(Hello)).unwrap();
+    let server = Http::new().bind(&addr, || Ok(Echo)).unwrap();
 
     println!("Listening on http://{} with 1 thread.",
              server.local_addr().unwrap());
