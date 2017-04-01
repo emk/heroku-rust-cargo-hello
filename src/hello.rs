@@ -16,6 +16,20 @@ static INDEX: &'static [u8] = b"Try POST /echo";
 #[derive(Clone, Copy)]
 struct Echo;
 
+fn handle_get(_req: Request) -> Response {
+    Response::new()
+        .with_header(ContentLength(INDEX.len() as u64))
+        .with_body(INDEX)
+}
+
+fn handle_post(req: Request) -> Response {
+    let mut res = Response::new();
+    if let Some(len) = req.headers().get::<ContentLength>() {
+        res.headers_mut().set(len.clone());
+    }
+    res.with_body(req.body())
+}
+
 impl Service for Echo {
     type Request = Request;
     type Response = Response;
@@ -23,21 +37,12 @@ impl Service for Echo {
     type Future = FutureResult<Response, hyper::Error>;
 
     fn call(&self, req: Request) -> Self::Future {
-        futures::future::ok(match (req.method(), req.path()) {
-                                (&Get, "/") | (&Get, "/echo") => {
-                                    Response::new()
-                                        .with_header(ContentLength(INDEX.len() as u64))
-                                        .with_body(INDEX)
-                                }
-                                (&Post, "/echo") => {
-            let mut res = Response::new();
-            if let Some(len) = req.headers().get::<ContentLength>() {
-                res.headers_mut().set(len.clone());
-            }
-            res.with_body(req.body())
-        }
-                                _ => Response::new().with_status(StatusCode::NotFound),
-                            })
+        let resp = match (req.method(), req.path()) {
+            (&Get, "/") | (&Get, "/echo") => handle_get(req),
+            (&Post, "/echo") => handle_post(req),
+            _ => Response::new().with_status(StatusCode::NotFound),
+        };
+        futures::future::ok(resp)
     }
 }
 /// Look up our server port number in PORT, for compatibility with Heroku.
