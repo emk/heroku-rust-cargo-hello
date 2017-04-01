@@ -31,10 +31,19 @@ impl Echo {
         let other_self = self.clone();
         self.thread_pool
             .spawn_fn(move || {
-                let conn = other_self.redis_pool.get().unwrap();
+                // FIXME: There's got to be a more elegant way to translate these error types.
+                let conn = match other_self.redis_pool.get() {
+                    Ok(v) => v,
+                    Err(e) => {
+                        return Err(hyper::Error::Io(std::io::Error::new(std::io::ErrorKind::Other,
+                                                                        format!("{}", e))))
+                    }
+                };
                 let query = req.query().unwrap_or("Nothing");
-                let last: String = conn.get("zomghi2u").unwrap();
-                let ret: String = conn.set("zomghi2u", query).unwrap();
+                let last: String = conn.get("last_response")
+                    .unwrap_or("You're the first!".to_string());
+                let ret: String = conn.set("last_response", query)
+                    .unwrap_or("DB ERROR".to_string());
                 let body = format!("Last person said: {} You said: {}. Got back: {}",
                                    last,
                                    query,
