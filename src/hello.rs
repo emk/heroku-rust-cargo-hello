@@ -18,20 +18,33 @@ use hyper::header::ContentLength;
 use hyper::server::{Http, Service, Request, Response};
 
 use r2d2_redis::RedisConnectionManager;
-
-static INDEX: &'static [u8] = b"Try POST /echo";
+use redis::Commands;
 
 #[derive(Clone)]
 struct Echo {
     thread_pool: CpuPool,
     redis_pool: r2d2::Pool<RedisConnectionManager>,
 }
+
 impl Echo {
-    fn handle_get(&self, _req: Request) -> BoxFuture<Response, hyper::Error> {
-        let res = Response::new()
-            .with_header(ContentLength(INDEX.len() as u64))
-            .with_body(INDEX);
-        self.thread_pool.spawn_fn(move || Ok(res)).boxed()
+    fn handle_get(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+        let other_self = self.clone();
+        self.thread_pool
+            .spawn_fn(move || {
+                let conn = other_self.redis_pool.get().unwrap();
+                let query = req.query().unwrap();
+                let last: String = conn.get("zomghi2u").unwrap();
+                let ret: String = conn.set("zomghi2u", query).unwrap();
+                let body = format!("Last person said: {} You said: {}. Got back: {}",
+                                   last,
+                                   query,
+                                   ret);
+                let res = Response::new()
+                    .with_header(ContentLength((body.len() as u64)))
+                    .with_body(body);
+                Ok(res)
+            })
+            .boxed()
     }
 
     fn handle_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
