@@ -86,8 +86,9 @@ impl Echo {
                 return Box::new(futures::future::ok(res));
             }
             None => {
-                return Box::new(futures::future::err(make_error(format!("Incorrect webhook_verify_token or No hub.challenge in {}",
-                                                                        req.uri().as_ref()))));
+                let msg = format!("Incorrect webhook_verify_token or No hub.challenge in {}",
+                                  req.uri().as_ref());
+                return Box::new(futures::future::err(make_error(msg)));
             }
         }
 
@@ -131,7 +132,7 @@ impl Service for Echo {
             res = res.with_body(body);
             println!("translating error");
 
-            return Ok::<_, hyper::Error>(res)
+            return Ok::<_, hyper::Error>(res);
         });
         Box::new(resp)
     }
