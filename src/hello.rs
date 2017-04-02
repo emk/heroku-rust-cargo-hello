@@ -6,6 +6,7 @@ extern crate pretty_env_logger;
 extern crate r2d2;
 extern crate r2d2_redis;
 extern crate redis;
+extern crate rmessenger;
 
 use std::env;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
@@ -19,11 +20,13 @@ use hyper::server::{Http, Service, Request, Response};
 
 use r2d2_redis::RedisConnectionManager;
 use redis::Commands;
+use rmessenger::bot::Bot;
 
 #[derive(Clone)]
 struct Echo {
     thread_pool: CpuPool,
     redis_pool: r2d2::Pool<RedisConnectionManager>,
+    bot: Bot,
 }
 
 impl Echo {
@@ -64,6 +67,25 @@ impl Echo {
         res = res.with_body(req.body());
         Box::new(futures::future::ok(res))
     }
+
+    fn handle_webhook_verification(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+        let mut res = Response::new();
+        if let Some(len) = req.headers().get::<ContentLength>() {
+            res.headers_mut().set(len.clone());
+        }
+        println!("got webhook verification {:?}", &req);
+        res = res.with_body(req.body());
+        Box::new(futures::future::ok(res))
+    }
+
+    fn handle_webhook_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+        let mut res = Response::new();
+        if let Some(len) = req.headers().get::<ContentLength>() {
+            res.headers_mut().set(len.clone());
+        }
+        res = res.with_body(req.body());
+        Box::new(futures::future::ok(res))
+    }
 }
 
 impl Service for Echo {
@@ -76,6 +98,8 @@ impl Service for Echo {
         let resp = match (req.method(), req.path()) {
             (&Get, "/") | (&Get, "/echo") => self.handle_get(req),
             (&Post, "/echo") => self.handle_post(req),
+            (&Get, "/webhook") => self.handle_webhook_verification(req),
+            (&Post, "/webhook") => self.handle_webhook_post(req),
             _ => Box::new(futures::future::ok(Response::new().with_status(StatusCode::NotFound))),
         };
         resp
@@ -95,6 +119,13 @@ fn get_redis_pool() -> r2d2::Pool<RedisConnectionManager> {
     redis_pool
 }
 
+fn get_bot() -> Bot {
+    let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
+    let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
+    let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
+    Bot::new(&access_token, &app_secret, &webhook_verify_token)
+}
+
 fn main() {
     pretty_env_logger::init().unwrap();
     // There has got to be a better way specify an ip address.
@@ -102,11 +133,13 @@ fn main() {
 
     let thread_pool = CpuPool::new(10);
     let redis_pool = get_redis_pool();
+    let bot = get_bot();
     let server = Http::new()
         .bind(&addr, move || {
             Ok(Echo {
                    thread_pool: thread_pool.clone(),
                    redis_pool: redis_pool.clone(),
+                   bot: bot.clone(),
                })
         })
         .unwrap();
