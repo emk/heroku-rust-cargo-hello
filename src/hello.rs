@@ -6,6 +6,7 @@ extern crate pretty_env_logger;
 extern crate r2d2;
 extern crate r2d2_redis;
 extern crate redis;
+extern crate serde_json;
 extern crate rmessenger;
 
 use std::env;
@@ -100,12 +101,15 @@ impl Echo {
                 acc.extend_from_slice(&chunk);
                 Ok::<_, hyper::Error>(acc)
             });
-        let response_fut = body_fut.and_then(|body| {
-                                                 println!("got webhook: {:?}", body);
-                                                 let mut res = Response::new();
-                                                 res = res.with_body(body);
-                                                 Ok(res)
-                                             });
+        let response_fut =
+            body_fut.and_then(|body| {
+                                  let json: serde_json::Value = serde_json::from_slice(&body)
+                                      .unwrap_or_default();
+                                  println!("got webhook: {:?}", json);
+                                  let mut res = Response::new();
+                                  res = res.with_body(json.to_string());
+                                  Ok(res)
+                              });
         Box::new(response_fut)
     }
 }
