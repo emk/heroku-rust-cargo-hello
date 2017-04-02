@@ -10,11 +10,12 @@ extern crate rmessenger;
 
 use std::env;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
-use futures::Future;
+use futures::{Future, Stream};
 use futures::future::BoxFuture;
 use futures_cpupool::CpuPool;
 
 use hyper::{Get, Post, StatusCode};
+use hyper::StatusCode::InternalServerError;
 use hyper::header::ContentLength;
 use hyper::server::{Http, Service, Request, Response};
 
@@ -72,9 +73,6 @@ impl Echo {
 
     fn handle_webhook_verification(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
         let mut res = Response::new();
-        if let Some(len) = req.headers().get::<ContentLength>() {
-            res.headers_mut().set(len.clone());
-        }
         println!("got webhook verification {:?}", &req);
 
         let query = req.query().unwrap_or(&"");
@@ -96,12 +94,18 @@ impl Echo {
     }
 
     fn handle_webhook_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
-        let mut res = Response::new();
-        if let Some(len) = req.headers().get::<ContentLength>() {
-            res.headers_mut().set(len.clone());
-        }
-        res = res.with_body(req.body());
-        Box::new(futures::future::ok(res))
+        let body_fut = req.body()
+            .fold(Vec::new(), |mut acc, chunk| {
+                acc.extend_from_slice(&chunk);
+                Ok::<_, hyper::Error>(acc)
+            });
+        let response_fut = body_fut.and_then(|body| {
+                                                 println!("got webhook: {:?}", body);
+                                                 let mut res = Response::new();
+                                                 res = res.with_body(body);
+                                                 Ok(res)
+                                             });
+        Box::new(response_fut)
     }
 }
 
@@ -112,23 +116,24 @@ impl Service for Echo {
     type Future = BoxFuture<Response, hyper::Error>;
 
     fn call(&self, req: Request) -> Self::Future {
-        let resp: Self::Future = match (req.method(), req.path()) {
+        let resp_fut: Self::Future = match (req.method(), req.path()) {
             (&Get, "/") | (&Get, "/echo") => self.handle_get(req),
             (&Post, "/echo") => self.handle_post(req),
             (&Get, "/webhook") => self.handle_webhook_verification(req),
             (&Post, "/webhook") => self.handle_webhook_post(req),
             _ => Box::new(futures::future::ok(Response::new().with_status(StatusCode::NotFound))),
         };
-        /*
-        resp = resp.or_else(|err| {
+
+        let resp = resp_fut.or_else(|err| {
             let mut res = Response::new();
             let body = format!("Something went wrong: {:?}", err);
-                res = res.with_body(body);
-                println!("translating error");
+            res.set_status(InternalServerError);
+            res = res.with_body(body);
+            println!("translating error");
 
             return Ok::<_, hyper::Error>(res)
-        });*/
-        resp
+        });
+        Box::new(resp)
     }
 }
 /// Look up our server port number in PORT, for compatibility with Heroku.
