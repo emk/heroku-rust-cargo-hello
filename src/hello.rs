@@ -6,6 +6,8 @@ extern crate pretty_env_logger;
 extern crate r2d2;
 extern crate r2d2_redis;
 extern crate redis;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
 extern crate rmessenger;
 
@@ -23,6 +25,76 @@ use hyper::server::{Http, Service, Request, Response};
 use r2d2_redis::RedisConnectionManager;
 use redis::Commands;
 use rmessenger::bot::Bot;
+
+/*
+The following structs are intended to represent the following webhook payload:
+Object({
+    "entry": Array([
+        Object({
+            "id": String("971281182990192"),
+            "messaging": Array([
+                Object({
+                    "message": Object({
+                        "mid": String("mid.$cAANzYAfQpeBhYL9PMFbL3oG935WY"),
+                        "seq": Number(PosInt(4969)),
+                        "text": String("ho")
+                    }),
+                    "recipient": Object({
+                        "id": String("971281182990192")
+                    }),
+                    "sender": Object({
+                        "id": String("1249910941788598")
+                    }),
+                    "timestamp": Number(PosInt(1491150178096))
+                })
+            ]),
+            "time": Number(PosInt(1491150178150))
+        })
+    ]),
+    "object": String("page")
+})
+*/
+#[derive(Serialize, Deserialize, Debug)]
+struct WebhookPayload {
+    entry: Vec<WebhookEntry>,
+    object: String,
+}
+
+impl Default for WebhookPayload {
+    fn default() -> WebhookPayload {
+        WebhookPayload {
+            entry: Vec::new(),
+            object: String::from("ParseError"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct WebhookEntry {
+    id: String,
+    messaging: Vec<MessageEntry>,
+    time: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct MessageEntry {
+    message: MessageDetailsEntry,
+    recipient: AuthorEntry,
+    sender: AuthorEntry,
+    timestamp: i64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct MessageDetailsEntry {
+    mid: String,
+    seq: i64,
+    text: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct AuthorEntry {
+    id: String,
+}
 
 #[derive(Clone)]
 struct Echo {
@@ -101,15 +173,16 @@ impl Echo {
                 acc.extend_from_slice(&chunk);
                 Ok::<_, hyper::Error>(acc)
             });
-        let response_fut =
-            body_fut.and_then(|body| {
-                                  let json: serde_json::Value = serde_json::from_slice(&body)
-                                      .unwrap_or_default();
-                                  println!("got webhook: {:?}", json);
-                                  let mut res = Response::new();
-                                  res = res.with_body(json.to_string());
-                                  Ok(res)
-                              });
+        let response_fut = body_fut.and_then(|body| {
+            let json: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+            println!("got webhook: {}", json.to_string());
+            println!("got webhook: {:?}", json);
+            let typed_json: WebhookPayload = serde_json::from_slice(&body).unwrap_or_default();
+            println!("got typed: {:?}", typed_json);
+            let mut res = Response::new();
+            res = res.with_body(serde_json::to_string(&typed_json).unwrap_or_default());
+            Ok(res)
+        });
         Box::new(response_fut)
     }
 }
