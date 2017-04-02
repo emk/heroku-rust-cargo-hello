@@ -9,7 +9,7 @@ dependencies = [
  "r2d2 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "r2d2_redis 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "redis 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rmessenger 0.1.0 (git+https://github.com/alsuren/rmessenger?rev=838aba14f5f50426d9f599f782a03fb227d733d1)",
+ "rmessenger 0.1.0 (git+https://github.com/alsuren/rmessenger?rev=fd4dc0f)",
  "url 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -295,7 +295,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "rmessenger"
 version = "0.1.0"
-source = "git+https://github.com/alsuren/rmessenger?rev=838aba14f5f50426d9f599f782a03fb227d733d1#838aba14f5f50426d9f599f782a03fb227d733d1"
+source = "git+https://github.com/alsuren/rmessenger?rev=fd4dc0f#fd4dc0f3431892bded73dd3402f7a8979377a440"
 dependencies = [
  "futures 0.1.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.11.0-a.0 (git+https://github.com/hyperium/hyper)",
@@ -508,7 +508,7 @@ dependencies = [
 "checksum redox_syscall 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)" = "29dbdfd4b9df8ab31dec47c6087b7b13cbf4a776f335e4de8efba8288dda075b"
 "checksum regex 0.1.80 (registry+https://github.com/rust-lang/crates.io-index)" = "4fd4ace6a8cf7860714a2c2280d6c1f7e6a413486c13298bbc86fd3da019402f"
 "checksum regex-syntax 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "f9ec002c35e86791825ed294b50008eea9ddfc8def4420124fbc6b08db834957"
-"checksum rmessenger 0.1.0 (git+https://github.com/alsuren/rmessenger?rev=838aba14f5f50426d9f599f782a03fb227d733d1)" = "<none>"
+"checksum rmessenger 0.1.0 (git+https://github.com/alsuren/rmessenger?rev=fd4dc0f)" = "<none>"
 "checksum rustc_version 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
 "checksum scoped-tls 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f417c22df063e9450888a7561788e9bd46d3bb3c1466435b4eccb903807f147d"
 "checksum semver 0.1.20 (registry+https://github.com/rust-lang/crates.io-index)" = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"

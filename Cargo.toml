@@ -23,6 +23,6 @@ pretty_env_logger = "0.1"
 r2d2_redis = "0.6.0"
 r2d2 = "0.7"
 redis = "0.8.0"
-rmessenger = { git = "https://github.com/alsuren/rmessenger", rev = "838aba14f5f50426d9f599f782a03fb227d733d1" }
+rmessenger = { git = "https://github.com/alsuren/rmessenger", rev = "fd4dc0f" }
 # branch = "webhooks" }
 url = "1.4.0"
