@@ -17,14 +17,16 @@ name = "hello"
 
 [dependencies]
 hyper = { git = "https://github.com/hyperium/hyper", branch = "master" }
+hyper-tls = { git = "https://github.com/hyperium/hyper-tls", branch = "master" }
 futures = "0.1.11"
 futures-cpupool = "0.1"
 pretty_env_logger = "0.1"
 r2d2_redis = "0.6.0"
 r2d2 = "0.7"
 redis = "0.8.0"
-rmessenger = { git = "https://github.com/alsuren/rmessenger", rev = "fd4dc0f" }
+rmessenger = { git = "https://github.com/alsuren/rmessenger", rev = "2d2216f" }
 serde = "0.9"
 serde_json = "0.9"
 serde_derive = "0.9"
+tokio-core = "0.1.6"
 url = "1.4.0"

@@ -1,5 +1,7 @@
 #![deny(warnings)]
 extern crate hyper;
+extern crate hyper_tls;
+extern crate tokio_core;
 extern crate futures;
 extern crate futures_cpupool;
 extern crate pretty_env_logger;
@@ -14,7 +16,6 @@ extern crate rmessenger;
 use std::env;
 use std::net::{SocketAddr, SocketAddrV4, Ipv4Addr};
 use futures::{Future, Stream};
-use futures::future::BoxFuture;
 use futures_cpupool::CpuPool;
 
 use hyper::{Get, Post, StatusCode};
@@ -26,6 +27,8 @@ use r2d2_redis::RedisConnectionManager;
 use redis::Commands;
 use rmessenger::bot::Bot;
 
+
+type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 /*
 The following structs are intended to represent the following webhook payload:
 Object({
@@ -100,6 +103,7 @@ struct AuthorEntry {
 struct Echo {
     thread_pool: CpuPool,
     redis_pool: r2d2::Pool<RedisConnectionManager>,
+    core: std::rc::Rc<tokio_core::reactor::Core>,
     bot: Bot,
 }
 
@@ -109,12 +113,25 @@ fn make_error(string: String) -> hyper::Error {
 }
 
 impl Echo {
-    fn handle_get(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
-        let other_self = self.clone();
+    fn new() -> Echo {
+        let thread_pool = CpuPool::new(10);
+        let redis_pool = get_redis_pool();
+        let core = std::rc::Rc::new(tokio_core::reactor::Core::new().unwrap());
+        let bot = get_bot(core.clone());
+        Echo {
+            thread_pool: thread_pool.clone(),
+            redis_pool: redis_pool.clone(),
+            core: core,
+            bot: bot.clone(),
+        }
+    }
+
+    fn handle_get(&self, req: Request) -> MessengerFuture {
+        let redis_pool = self.redis_pool.clone();
         self.thread_pool
             .spawn_fn(move || {
                 // FIXME: There's got to be a more elegant way to translate these error types.
-                let conn = match other_self.redis_pool.get() {
+                let conn = match redis_pool.get() {
                     Ok(v) => v,
                     Err(e) => return Err(make_error(format!("{}", e))),
                 };
@@ -135,7 +152,7 @@ impl Echo {
             .boxed()
     }
 
-    fn handle_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+    fn handle_post(&self, req: Request) -> MessengerFuture {
         let mut res = Response::new();
         if let Some(len) = req.headers().get::<ContentLength>() {
             res.headers_mut().set(len.clone());
@@ -144,7 +161,7 @@ impl Echo {
         Box::new(futures::future::ok(res))
     }
 
-    fn handle_webhook_verification(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+    fn handle_webhook_verification(&self, req: Request) -> MessengerFuture {
         let mut res = Response::new();
         println!("got webhook verification {:?}", &req);
 
@@ -167,22 +184,41 @@ impl Echo {
 
     }
 
-    fn handle_webhook_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
+    fn handle_webhook_post(&self, req: Request) -> MessengerFuture {
+        let bot = self.bot.clone();
         let body_fut = req.body()
             .fold(Vec::new(), |mut acc, chunk| {
                 acc.extend_from_slice(&chunk);
                 Ok::<_, hyper::Error>(acc)
             });
-        let response_fut = body_fut.and_then(|body| {
-            let json: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
-            println!("got webhook: {}", json.to_string());
-            println!("got webhook: {:?}", json);
-            let typed_json: WebhookPayload = serde_json::from_slice(&body).unwrap_or_default();
-            println!("got typed: {:?}", typed_json);
-            let mut res = Response::new();
-            res = res.with_body(serde_json::to_string(&typed_json).unwrap_or_default());
-            Ok(res)
-        });
+        let response_fut =
+            body_fut.and_then(move |body| {
+                let json: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
+                println!("got webhook: {}", json.to_string());
+                println!("got webhook: {:?}", json);
+                let typed_json: WebhookPayload = serde_json::from_slice(&body).unwrap_or_default();
+                println!("got typed: {:?}", typed_json);
+
+
+                let mut message_futures = Vec::new();
+                for entry in &typed_json.entry {
+                    for message in &entry.messaging {
+                        let text = &message.message.text;
+                        let sender = &message.sender.id;
+                        message_futures.push(bot.send_text_message(sender, text));
+                    }
+                }
+                let joined_futures = futures::future::join_all(message_futures);
+
+                let response_future = joined_futures.and_then(move |v| {
+                    println!("message sending done: {:?}", v);
+
+                    let mut res = Response::new();
+                    res = res.with_body(serde_json::to_string(&typed_json).unwrap_or_default());
+                    Ok(res)
+                });
+                response_future
+            });
         Box::new(response_fut)
     }
 }
@@ -191,7 +227,7 @@ impl Service for Echo {
     type Request = Request;
     type Response = Response;
     type Error = hyper::Error;
-    type Future = BoxFuture<Response, hyper::Error>;
+    type Future = MessengerFuture;
 
     fn call(&self, req: Request) -> Self::Future {
         let resp_fut: Self::Future = match (req.method(), req.path()) {
@@ -228,11 +264,24 @@ fn get_redis_pool() -> r2d2::Pool<RedisConnectionManager> {
     redis_pool
 }
 
-fn get_bot() -> Bot {
+fn get_http_client(core: std::rc::Rc<tokio_core::reactor::Core>)
+                   -> hyper::Client<hyper_tls::HttpsConnector> {
+    let handle = core.handle();
+    let client = hyper::Client::configure()
+        .connector(hyper_tls::HttpsConnector::new(4, &handle))
+        .build(&handle);
+
+    client
+}
+
+fn get_bot(core: std::rc::Rc<tokio_core::reactor::Core>) -> Bot {
     let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
     let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
-    Bot::new(&access_token, &app_secret, &webhook_verify_token)
+    Bot::new(get_http_client(core),
+             &access_token,
+             &app_secret,
+             &webhook_verify_token)
 }
 
 fn main() {
@@ -240,18 +289,7 @@ fn main() {
     // There has got to be a better way specify an ip address.
     let addr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), get_server_port()));
 
-    let thread_pool = CpuPool::new(10);
-    let redis_pool = get_redis_pool();
-    let bot = get_bot();
-    let server = Http::new()
-        .bind(&addr, move || {
-            Ok(Echo {
-                   thread_pool: thread_pool.clone(),
-                   redis_pool: redis_pool.clone(),
-                   bot: bot.clone(),
-               })
-        })
-        .unwrap();
+    let server = Http::new().bind(&addr, move || Ok(Echo::new())).unwrap();
 
     println!("Listening on http://{} with 1 thread.",
              server.local_addr().unwrap());
