@@ -29,6 +29,11 @@ struct Echo {
     bot: Bot,
 }
 
+fn make_error(string: String) -> hyper::Error {
+    println!("error: {}", string);
+    hyper::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, string))
+}
+
 impl Echo {
     fn handle_get(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
         let other_self = self.clone();
@@ -37,10 +42,7 @@ impl Echo {
                 // FIXME: There's got to be a more elegant way to translate these error types.
                 let conn = match other_self.redis_pool.get() {
                     Ok(v) => v,
-                    Err(e) => {
-                        return Err(hyper::Error::Io(std::io::Error::new(std::io::ErrorKind::Other,
-                                                                        format!("{}", e))))
-                    }
+                    Err(e) => return Err(make_error(format!("{}", e))),
                 };
                 let query = req.query().unwrap_or("Nothing");
                 let last: String = conn.get("last_response")
@@ -74,8 +76,23 @@ impl Echo {
             res.headers_mut().set(len.clone());
         }
         println!("got webhook verification {:?}", &req);
-        res = res.with_body(req.body());
-        Box::new(futures::future::ok(res))
+
+        let query = req.query().unwrap_or(&"");
+        let hub_challenge = self.bot.verify_webhook_query(query);
+
+        match hub_challenge {
+            Some(token) => {
+                res = res.with_header(ContentLength((token.len() as u64)));
+                res = res.with_body(token);
+                println!("returning success");
+                return Box::new(futures::future::ok(res));
+            }
+            None => {
+                return Box::new(futures::future::err(make_error(format!("Incorrect webhook_verify_token or No hub.challenge in {}",
+                                                                        req.uri().as_ref()))));
+            }
+        }
+
     }
 
     fn handle_webhook_post(&self, req: Request) -> BoxFuture<Response, hyper::Error> {
@@ -95,13 +112,22 @@ impl Service for Echo {
     type Future = BoxFuture<Response, hyper::Error>;
 
     fn call(&self, req: Request) -> Self::Future {
-        let resp = match (req.method(), req.path()) {
+        let resp: Self::Future = match (req.method(), req.path()) {
             (&Get, "/") | (&Get, "/echo") => self.handle_get(req),
             (&Post, "/echo") => self.handle_post(req),
             (&Get, "/webhook") => self.handle_webhook_verification(req),
             (&Post, "/webhook") => self.handle_webhook_post(req),
             _ => Box::new(futures::future::ok(Response::new().with_status(StatusCode::NotFound))),
         };
+        /*
+        resp = resp.or_else(|err| {
+            let mut res = Response::new();
+            let body = format!("Something went wrong: {:?}", err);
+                res = res.with_body(body);
+                println!("translating error");
+
+            return Ok::<_, hyper::Error>(res)
+        });*/
         resp
     }
 }
