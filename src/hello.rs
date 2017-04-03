@@ -27,6 +27,9 @@ use r2d2_redis::RedisConnectionManager;
 use redis::Commands;
 use rmessenger::bot::Bot;
 
+use tokio_core::net::TcpListener;
+use tokio_core::reactor::{Core, Handle};
+
 
 type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 /*
@@ -103,7 +106,7 @@ struct AuthorEntry {
 struct Echo {
     thread_pool: CpuPool,
     redis_pool: r2d2::Pool<RedisConnectionManager>,
-    core: std::rc::Rc<tokio_core::reactor::Core>,
+    handle: Handle,
     bot: Bot,
 }
 
@@ -113,15 +116,14 @@ fn make_error(string: String) -> hyper::Error {
 }
 
 impl Echo {
-    fn new() -> Echo {
+    fn new(handle: Handle) -> Echo {
         let thread_pool = CpuPool::new(10);
         let redis_pool = get_redis_pool();
-        let core = std::rc::Rc::new(tokio_core::reactor::Core::new().unwrap());
-        let bot = get_bot(core.clone());
+        let bot = get_bot(handle.clone());
         Echo {
             thread_pool: thread_pool.clone(),
             redis_pool: redis_pool.clone(),
-            core: core,
+            handle: handle.clone(),
             bot: bot.clone(),
         }
     }
@@ -264,9 +266,7 @@ fn get_redis_pool() -> r2d2::Pool<RedisConnectionManager> {
     redis_pool
 }
 
-fn get_http_client(core: std::rc::Rc<tokio_core::reactor::Core>)
-                   -> hyper::Client<hyper_tls::HttpsConnector> {
-    let handle = core.handle();
+fn get_http_client(handle: Handle) -> hyper::Client<hyper_tls::HttpsConnector> {
     let client = hyper::Client::configure()
         .connector(hyper_tls::HttpsConnector::new(4, &handle))
         .build(&handle);
@@ -274,11 +274,11 @@ fn get_http_client(core: std::rc::Rc<tokio_core::reactor::Core>)
     client
 }
 
-fn get_bot(core: std::rc::Rc<tokio_core::reactor::Core>) -> Bot {
+fn get_bot(handle: Handle) -> Bot {
     let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
     let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
-    Bot::new(get_http_client(core),
+    Bot::new(get_http_client(handle),
              &access_token,
              &app_secret,
              &webhook_verify_token)
@@ -289,10 +289,18 @@ fn main() {
     // There has got to be a better way specify an ip address.
     let addr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), get_server_port()));
 
-    let server = Http::new().bind(&addr, move || Ok(Echo::new())).unwrap();
-
-    println!("Listening on http://{} with 1 thread.",
-             server.local_addr().unwrap());
-
-    server.run().unwrap();
+    let mut core = Core::new().unwrap();
+    let handle: Handle = core.handle();
+    let listener = TcpListener::bind(&addr, &handle).unwrap();
+    let protocol = Http::new();
+    core.run(listener
+                 .incoming()
+                 .for_each(|(socket, addr)| {
+                               protocol.bind_connection(&handle,
+                                                        socket,
+                                                        addr,
+                                                        Echo::new(handle.clone()));
+                               Ok(())
+                           }))
+        .unwrap()
 }
