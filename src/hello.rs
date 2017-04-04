@@ -116,7 +116,7 @@ fn make_error(string: String) -> hyper::Error {
 }
 
 impl Echo {
-    fn new(handle: Handle) -> Echo {
+    fn new(handle: &Handle) -> Echo {
         let thread_pool = CpuPool::new(10);
         let redis_pool = get_redis_pool();
         let bot = get_bot(handle.clone());
@@ -293,13 +293,11 @@ fn main() {
     let handle: Handle = core.handle();
     let listener = TcpListener::bind(&addr, &handle).unwrap();
     let protocol = Http::new();
+    let service = Echo::new(&handle);
     core.run(listener
                  .incoming()
                  .for_each(|(socket, addr)| {
-                               protocol.bind_connection(&handle,
-                                                        socket,
-                                                        addr,
-                                                        Echo::new(handle.clone()));
+                               protocol.bind_connection(&handle, socket, addr, service.clone());
                                Ok(())
                            }))
         .unwrap()
