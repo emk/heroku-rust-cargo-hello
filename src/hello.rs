@@ -22,8 +22,7 @@ fn hello_name(req: &mut Request) -> IronResult<Response> {
 
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> u16 {
-    let port_str = env::var("PORT").unwrap_or(String::new());
-    port_str.parse().unwrap_or(8080)
+    env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8080)
 }
 
 /// Configure and run our server.
