@@ -14,6 +14,7 @@ unstable = []
 
 [[bin]]
 name = "hello"
+path = "src/hello.rs"
 
 [dependencies]
 hyper = { git = "https://github.com/hyperium/hyper", branch = "master" }
