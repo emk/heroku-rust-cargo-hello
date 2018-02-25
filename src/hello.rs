@@ -20,8 +20,8 @@ use futures::future;
 use futures_cpupool::CpuPool;
 
 use hyper::{Get, Post, StatusCode};
-use hyper::client::{HttpConnector};
-use hyper::header::{ContentLength};
+use hyper::client::HttpConnector;
+use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 
 use rmessenger::bot::Bot;
@@ -29,8 +29,7 @@ use rmessenger::bot::Bot;
 use std::env;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
-use tokio_core::net::TcpListener;
-use tokio_core::reactor::{Core, Handle};
+use tokio_core::reactor::Handle;
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
@@ -129,16 +128,13 @@ impl Echo {
     }
 
     fn handle_get(&self, _req: Request) -> MessengerFuture {
-        box self.thread_pool
-            .spawn_fn(move || {
-                let body = format!(
-                    "Hello world."
-                );
-                let res = Response::new()
-                    .with_header(ContentLength(body.len() as u64))
-                    .with_body(body);
-                Ok(res)
-            })
+        box self.thread_pool.spawn_fn(move || {
+            let body = format!("Hello world.");
+            let res = Response::new()
+                .with_header(ContentLength(body.len() as u64))
+                .with_body(body);
+            Ok(res)
+        })
     }
 
     fn handle_post(&self, req: Request) -> MessengerFuture {
@@ -222,9 +218,7 @@ impl Service for Echo {
             (&Post, "/echo") => self.handle_post(req),
             (&Get, "/webhook") => self.handle_webhook_verification(req),
             (&Post, "/webhook") => self.handle_webhook_post(req),
-            _ => box future::ok(
-                Response::new().with_status(StatusCode::NotFound),
-            ),
+            _ => box future::ok(Response::new().with_status(StatusCode::NotFound)),
         };
 
         let resp = resp_fut.or_else(|err| {
@@ -277,13 +271,39 @@ fn main() {
     // let listener = TcpListener::bind(&addr, &handle).unwrap();
     // let protocol = Http::new();
     // let service = Echo::new(&handle);
-    
+
     // core.run(listener.incoming().for_each(|(socket, addr)| {
     //     protocol.bind_connection(&handle, socket, addr, service.clone());
     //     Ok(())
     // })).unwrap()
 
-    let server = Http::new().bind(&addr, || Ok(Echo)).unwrap();
-    println!("Listening on http://{}...", server.local_addr().unwrap());
-    server.run().unwrap();
+    let mut core = tokio_core::reactor::Core::new().unwrap();
+    let handle = core.handle();
+    let client_handle = core.handle();
+
+    let serve = Http::new()
+        .serve_addr_handle(&addr, &handle, move || Ok(Echo::new(&client_handle)))
+        .unwrap();
+    println!(
+        "Listening on http://{} with 1 thread.",
+        serve.incoming_ref().local_addr()
+    );
+
+    let h2 = handle.clone();
+    handle.spawn(
+        serve
+            .for_each(move |conn| {
+                h2.spawn(
+                    conn.map(|_| ())
+                        .map_err(|err| println!("serve error: {:?}", err)),
+                );
+                Ok(())
+            })
+            .map_err(|_| ()),
+    );
+
+    core.run(futures::future::empty::<(), ()>()).unwrap();
+    // let server = Http::new().bind(&addr, || Ok(Echo)).unwrap();
+    // println!("Listening on http://{}...", server.local_addr().unwrap());
+    // server.run().unwrap();
 }
