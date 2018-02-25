@@ -1,32 +1,32 @@
 [package]
-
-name = "heroku-rust-cargo-hello"
-version = "1.0.0"
-authors = ["me@example.com"]
-
-[features]
-# This allows us to use `#[cfg(unstable)]` to conditionalize the use of
-# unstable Rust features from the nightly builds.  This is handy if we want
-# to use, say, benchmaking from the `test` library when available.  Also,
-# `travis-cargo` expects this to be here when building against the nightly
-# version of Cargo.
-unstable = []
+authors = ["David Laban <alsuren@gmail.com>", "Alex Regueiro <alexreg@gmail.com>"]
+categories = ["games"]
+description = "Facebook Messenger bot for the Ergo game"
+homepage = "https://github.com/alexreg/ergo-bot"
+keywords = ["bot", "facebook", "facebook-messenger", "game"]
+license = "BSD-3-Clause"
+name = "ergo-bot"
+readme = "README"
+repository = "https://github.com/alexreg/ergo-bot"
+version = "0.1.0"
 
 [[bin]]
 name = "hello"
 path = "src/hello.rs"
 
+[features]
+unstable = []
+
 [dependencies]
-hyper = { git = "https://github.com/hyperium/hyper", branch = "master" }
-hyper-tls = { git = "https://github.com/hyperium/hyper-tls", branch = "master" }
-futures = "0.1.11"
-futures-cpupool = "0.1"
-pretty_env_logger = "0.1"
-r2d2 = "0.7"
-rmessenger = { git = "https://github.com/alsuren/rmessenger", rev = "2d2216f" }
-serde = "0.9"
-serde_json = "0.9"
-serde_derive = "0.9"
-tokio-core = "0.1.6"
-tokio-proto = "0.1"
-url = "1.4.0"
+futures = "0.1.18"
+futures-cpupool = "0.1.8"
+hyper = "0.11.19"
+hyper-tls = "0.1.2"
+pretty_env_logger = "0.2.2"
+r2d2 = "0.8.2"
+rmessenger = { git = "https://github.com/alsuren/rmessenger", branch = "master" }
+serde = "1.0.27"
+serde_derive = "1.0.27"
+serde_json = "1.0.9"
+tokio-core = "0.1.12"
+url = "1.7.0"

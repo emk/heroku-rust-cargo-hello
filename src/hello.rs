@@ -1,4 +1,8 @@
-#![deny(warnings)]
+#![feature(box_syntax)]
+#![feature(conservative_impl_trait)]
+#![feature(universal_impl_trait)]
+#![feature(dyn_trait)]
+
 extern crate futures;
 extern crate futures_cpupool;
 extern crate hyper;
@@ -11,20 +15,24 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
 
-use std::env;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use futures::{Future, Stream};
+use futures::future;
 use futures_cpupool::CpuPool;
 
 use hyper::{Get, Post, StatusCode};
-use hyper::StatusCode::InternalServerError;
-use hyper::header::ContentLength;
+use hyper::client::{HttpConnector};
+use hyper::header::{ContentLength};
 use hyper::server::{Http, Request, Response, Service};
 
 use rmessenger::bot::Bot;
 
+use std::env;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::{Core, Handle};
+
+type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
 type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 /*
@@ -121,7 +129,7 @@ impl Echo {
     }
 
     fn handle_get(&self, _req: Request) -> MessengerFuture {
-        self.thread_pool
+        box self.thread_pool
             .spawn_fn(move || {
                 let body = format!(
                     "Hello world."
@@ -131,7 +139,6 @@ impl Echo {
                     .with_body(body);
                 Ok(res)
             })
-            .boxed()
     }
 
     fn handle_post(&self, req: Request) -> MessengerFuture {
@@ -140,7 +147,7 @@ impl Echo {
             res.headers_mut().set(len.clone());
         }
         res = res.with_body(req.body());
-        Box::new(futures::future::ok(res))
+        box future::ok(res)
     }
 
     fn handle_webhook_verification(&self, req: Request) -> MessengerFuture {
@@ -152,17 +159,17 @@ impl Echo {
 
         match hub_challenge {
             Some(token) => {
-                res = res.with_header(ContentLength((token.len() as u64)));
+                res = res.with_header(ContentLength(token.len() as u64));
                 res = res.with_body(token);
                 println!("returning success");
-                return Box::new(futures::future::ok(res));
+                box future::ok(res)
             }
             None => {
                 let msg = format!(
                     "Incorrect webhook_verify_token or No hub.challenge in {}",
                     req.uri().as_ref()
                 );
-                return Box::new(futures::future::err(make_error(msg)));
+                box future::err(make_error(msg))
             }
         }
     }
@@ -188,7 +195,7 @@ impl Echo {
                     message_futures.push(bot.send_text_message(sender, text));
                 }
             }
-            let joined_futures = futures::future::join_all(message_futures);
+            let joined_futures = future::join_all(message_futures);
 
             let response_future = joined_futures.and_then(move |v| {
                 println!("message sending done: {:?}", v);
@@ -199,7 +206,7 @@ impl Echo {
             });
             response_future
         });
-        Box::new(response_fut)
+        box response_fut
     }
 }
 
@@ -215,32 +222,32 @@ impl Service for Echo {
             (&Post, "/echo") => self.handle_post(req),
             (&Get, "/webhook") => self.handle_webhook_verification(req),
             (&Post, "/webhook") => self.handle_webhook_post(req),
-            _ => Box::new(futures::future::ok(
+            _ => box future::ok(
                 Response::new().with_status(StatusCode::NotFound),
-            )),
+            ),
         };
 
         let resp = resp_fut.or_else(|err| {
             let mut res = Response::new();
             let body = format!("Something went wrong: {:?}", err);
-            res.set_status(InternalServerError);
+            res.set_status(StatusCode::InternalServerError);
             res = res.with_body(body);
             println!("translating error");
-
-            return Ok::<_, hyper::Error>(res);
+            Ok::<_, hyper::Error>(res)
         });
-        Box::new(resp)
+        box resp
     }
 }
+
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> u16 {
     let port_str = env::var("PORT").unwrap_or(String::new());
     port_str.parse().unwrap_or(8080)
 }
 
-fn get_http_client(handle: Handle) -> hyper::Client<hyper_tls::HttpsConnector> {
+fn get_http_client(handle: Handle) -> hyper::Client<HttpsConnector> {
     let client = hyper::Client::configure()
-        .connector(hyper_tls::HttpsConnector::new(4, &handle))
+        .connector(hyper_tls::HttpsConnector::new(4, &handle).unwrap())
         .build(&handle);
 
     client
@@ -259,21 +266,24 @@ fn get_bot(handle: Handle) -> Bot {
 }
 
 fn main() {
-    pretty_env_logger::init().unwrap();
-    // There has got to be a better way specify an ip address.
+    pretty_env_logger::init();
     let addr = SocketAddr::V4(SocketAddrV4::new(
         Ipv4Addr::new(0, 0, 0, 0),
         get_server_port(),
     ));
 
-    let mut core = Core::new().unwrap();
-    let handle: Handle = core.handle();
-    let listener = TcpListener::bind(&addr, &handle).unwrap();
-    let protocol = Http::new();
-    let service = Echo::new(&handle);
-    println!("Running server on {}...", addr);
-    core.run(listener.incoming().for_each(|(socket, addr)| {
-        protocol.bind_connection(&handle, socket, addr, service.clone());
-        Ok(())
-    })).unwrap()
+    // let mut core = Core::new().unwrap();
+    // let handle: Handle = core.handle();
+    // let listener = TcpListener::bind(&addr, &handle).unwrap();
+    // let protocol = Http::new();
+    // let service = Echo::new(&handle);
+    
+    // core.run(listener.incoming().for_each(|(socket, addr)| {
+    //     protocol.bind_connection(&handle, socket, addr, service.clone());
+    //     Ok(())
+    // })).unwrap()
+
+    let server = Http::new().bind(&addr, || Ok(Echo)).unwrap();
+    println!("Listening on http://{}...", server.local_addr().unwrap());
+    server.run().unwrap();
 }
