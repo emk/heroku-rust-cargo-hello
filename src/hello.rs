@@ -5,8 +5,6 @@ extern crate hyper;
 extern crate hyper_tls;
 extern crate pretty_env_logger;
 extern crate r2d2;
-extern crate r2d2_redis;
-extern crate redis;
 extern crate rmessenger;
 #[macro_use]
 extern crate serde_derive;
@@ -23,8 +21,6 @@ use hyper::StatusCode::InternalServerError;
 use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 
-use r2d2_redis::RedisConnectionManager;
-use redis::Commands;
 use rmessenger::bot::Bot;
 
 use tokio_core::net::TcpListener;
@@ -104,7 +100,6 @@ struct AuthorEntry {
 #[derive(Clone)]
 struct Echo {
     thread_pool: CpuPool,
-    redis_pool: r2d2::Pool<RedisConnectionManager>,
     handle: Handle,
     bot: Bot,
 }
@@ -115,38 +110,24 @@ fn make_error(string: String) -> hyper::Error {
 }
 
 impl Echo {
-    fn new(handle: &Handle) -> Echo {
+    fn new(handle: &Handle) -> Self {
         let thread_pool = CpuPool::new(10);
-        let redis_pool = get_redis_pool();
         let bot = get_bot(handle.clone());
-        Echo {
+        Self {
             thread_pool: thread_pool.clone(),
-            redis_pool: redis_pool.clone(),
             handle: handle.clone(),
             bot: bot.clone(),
         }
     }
 
-    fn handle_get(&self, req: Request) -> MessengerFuture {
-        let redis_pool = self.redis_pool.clone();
+    fn handle_get(&self, _req: Request) -> MessengerFuture {
         self.thread_pool
             .spawn_fn(move || {
-                // FIXME: There's got to be a more elegant way to translate these error types.
-                let conn = match redis_pool.get() {
-                    Ok(v) => v,
-                    Err(e) => return Err(make_error(format!("{}", e))),
-                };
-                let query = req.query().unwrap_or("Nothing");
-                let last: String = conn.get("last_response")
-                    .unwrap_or("You're the first!".to_string());
-                let ret: String = conn.set("last_response", query)
-                    .unwrap_or("DB ERROR".to_string());
                 let body = format!(
-                    "Last person said: {} You said: {}. Got back: {}",
-                    last, query, ret
+                    "Hello world."
                 );
                 let res = Response::new()
-                    .with_header(ContentLength((body.len() as u64)))
+                    .with_header(ContentLength(body.len() as u64))
                     .with_body(body);
                 Ok(res)
             })
@@ -257,14 +238,6 @@ fn get_server_port() -> u16 {
     port_str.parse().unwrap_or(8080)
 }
 
-fn get_redis_pool() -> r2d2::Pool<RedisConnectionManager> {
-    let url = env::var("REDIS_URL").unwrap_or(String::new());
-    let config = Default::default();
-    let manager = RedisConnectionManager::new(url.as_str()).unwrap();
-    let redis_pool = r2d2::Pool::new(config, manager).unwrap();
-    redis_pool
-}
-
 fn get_http_client(handle: Handle) -> hyper::Client<hyper_tls::HttpsConnector> {
     let client = hyper::Client::configure()
         .connector(hyper_tls::HttpsConnector::new(4, &handle))
@@ -298,6 +271,7 @@ fn main() {
     let listener = TcpListener::bind(&addr, &handle).unwrap();
     let protocol = Http::new();
     let service = Echo::new(&handle);
+    println!("Running server on {}...", addr);
     core.run(listener.incoming().for_each(|(socket, addr)| {
         protocol.bind_connection(&handle, socket, addr, service.clone());
         Ok(())
