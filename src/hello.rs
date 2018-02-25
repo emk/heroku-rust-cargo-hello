@@ -218,7 +218,7 @@ impl Echo {
             });
             response_future
         });
-        box response_fut
+        Box::new(response_fut)
     }
 }
 
@@ -234,7 +234,9 @@ impl Service for Echo {
             (&Post, "/echo") => self.handle_post(req),
             (&Get, "/webhook") => self.handle_webhook_verification(req),
             (&Post, "/webhook") => self.handle_webhook_post(req),
-            _ => box futures::future::ok(Response::new().with_status(StatusCode::NotFound)),
+            _ => Box::new(futures::future::ok(
+                Response::new().with_status(StatusCode::NotFound),
+            )),
         };
 
         let resp = resp_fut.or_else(|err| {
@@ -244,9 +246,9 @@ impl Service for Echo {
             res = res.with_body(body);
             println!("translating error");
 
-            Ok::<_, hyper::Error>(res)
+            return Ok::<_, hyper::Error>(res);
         });
-        box resp
+        Box::new(resp)
     }
 }
 /// Look up our server port number in PORT, for compatibility with Heroku.
