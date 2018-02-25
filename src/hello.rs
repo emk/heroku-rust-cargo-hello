@@ -29,7 +29,7 @@ use rmessenger::bot::Bot;
 use std::env;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
-use tokio_core::reactor::Handle;
+use tokio_core::reactor::{Core, Handle};
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
@@ -261,23 +261,13 @@ fn get_bot(handle: Handle) -> Bot {
 
 fn main() {
     pretty_env_logger::init();
+
     let addr = SocketAddr::V4(SocketAddrV4::new(
         Ipv4Addr::new(0, 0, 0, 0),
         get_server_port(),
     ));
 
-    // let mut core = Core::new().unwrap();
-    // let handle: Handle = core.handle();
-    // let listener = TcpListener::bind(&addr, &handle).unwrap();
-    // let protocol = Http::new();
-    // let service = Echo::new(&handle);
-
-    // core.run(listener.incoming().for_each(|(socket, addr)| {
-    //     protocol.bind_connection(&handle, socket, addr, service.clone());
-    //     Ok(())
-    // })).unwrap()
-
-    let mut core = tokio_core::reactor::Core::new().unwrap();
+    let mut core = Core::new().unwrap();
     let handle = core.handle();
     let client_handle = core.handle();
 
@@ -285,7 +275,7 @@ fn main() {
         .serve_addr_handle(&addr, &handle, move || Ok(Echo::new(&client_handle)))
         .unwrap();
     println!(
-        "Listening on http://{} with 1 thread.",
+        "Listening on http://{}...",
         serve.incoming_ref().local_addr()
     );
 
@@ -302,8 +292,5 @@ fn main() {
             .map_err(|_| ()),
     );
 
-    core.run(futures::future::empty::<(), ()>()).unwrap();
-    // let server = Http::new().bind(&addr, || Ok(Echo)).unwrap();
-    // println!("Listening on http://{}...", server.local_addr().unwrap());
-    // server.run().unwrap();
+    core.run(future::empty::<(), ()>()).unwrap();
 }
