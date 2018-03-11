@@ -1,14 +1,7 @@
-#![feature(box_syntax)]
-#![feature(conservative_impl_trait)]
-#![feature(universal_impl_trait)]
-#![feature(dyn_trait)]
-
 extern crate futures;
-extern crate futures_cpupool;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate pretty_env_logger;
-extern crate r2d2;
 extern crate rmessenger;
 #[macro_use]
 extern crate serde_derive;
@@ -17,7 +10,6 @@ extern crate tokio_core;
 
 use futures::{Future, Stream};
 use futures::future;
-use futures_cpupool::CpuPool;
 
 use hyper::{Get, Post, StatusCode};
 use hyper::client::HttpConnector;
@@ -106,7 +98,6 @@ struct AuthorEntry {
 
 #[derive(Clone)]
 struct Echo {
-    thread_pool: CpuPool,
     handle: Handle,
     bot: Bot,
 }
@@ -118,32 +109,11 @@ fn make_error(string: String) -> hyper::Error {
 
 impl Echo {
     fn new(handle: &Handle) -> Self {
-        let thread_pool = CpuPool::new(10);
         let bot = get_bot(handle.clone());
         Self {
-            thread_pool: thread_pool.clone(),
             handle: handle.clone(),
             bot: bot.clone(),
         }
-    }
-
-    fn handle_get(&self, _req: Request) -> MessengerFuture {
-        box self.thread_pool.spawn_fn(move || {
-            let body = format!("Hello world.");
-            let res = Response::new()
-                .with_header(ContentLength(body.len() as u64))
-                .with_body(body);
-            Ok(res)
-        })
-    }
-
-    fn handle_post(&self, req: Request) -> MessengerFuture {
-        let mut res = Response::new();
-        if let Some(len) = req.headers().get::<ContentLength>() {
-            res.headers_mut().set(len.clone());
-        }
-        res = res.with_body(req.body());
-        box future::ok(res)
     }
 
     fn handle_webhook_verification(&self, req: Request) -> MessengerFuture {
@@ -158,14 +128,14 @@ impl Echo {
                 res = res.with_header(ContentLength(token.len() as u64));
                 res = res.with_body(token);
                 println!("returning success");
-                box future::ok(res)
+                Box::new(future::ok(res))
             }
             None => {
                 let msg = format!(
                     "Incorrect webhook_verify_token or No hub.challenge in {}",
                     req.uri().as_ref()
                 );
-                box future::err(make_error(msg))
+                Box::new(future::err(make_error(msg)))
             }
         }
     }
@@ -202,7 +172,7 @@ impl Echo {
             });
             response_future
         });
-        box response_fut
+        Box::new(response_fut)
     }
 }
 
@@ -214,11 +184,11 @@ impl Service for Echo {
 
     fn call(&self, req: Request) -> Self::Future {
         let resp_fut: Self::Future = match (req.method(), req.path()) {
-            (&Get, "/") | (&Get, "/echo") => self.handle_get(req),
-            (&Post, "/echo") => self.handle_post(req),
             (&Get, "/webhook") => self.handle_webhook_verification(req),
             (&Post, "/webhook") => self.handle_webhook_post(req),
-            _ => box future::ok(Response::new().with_status(StatusCode::NotFound)),
+            _ => Box::new(future::ok(
+                Response::new().with_status(StatusCode::NotFound),
+            )),
         };
 
         let resp = resp_fut.or_else(|err| {
@@ -229,7 +199,7 @@ impl Service for Echo {
             println!("translating error");
             Ok::<_, hyper::Error>(res)
         });
-        box resp
+        Box::new(resp)
     }
 }
 
