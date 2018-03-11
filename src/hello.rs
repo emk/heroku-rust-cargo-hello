@@ -7,13 +7,13 @@ extern crate rmessenger;
 extern crate serde_derive;
 extern crate serde_json;
 extern crate tokio_core;
+extern crate url;
 
 use futures::{Future, Stream};
 use futures::future;
 
 use hyper::{Get, Post, StatusCode};
 use hyper::client::HttpConnector;
-use hyper::header::ContentLength;
 use hyper::server::{Http, Request, Response, Service};
 
 use rmessenger::bot::Bot;
@@ -23,121 +23,32 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 use tokio_core::reactor::{Core, Handle};
 
-type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
-
-type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
-/*
-The following structs are intended to represent the following webhook payload:
-Object({
-    "entry": Array([
-        Object({
-            "id": String("971281182990192"),
-            "messaging": Array([
-                Object({
-                    "message": Object({
-                        "mid": String("mid.$cAANzYAfQpeBhYL9PMFbL3oG935WY"),
-                        "seq": Number(PosInt(4969)),
-                        "text": String("ho")
-                    }),
-                    "recipient": Object({
-                        "id": String("971281182990192")
-                    }),
-                    "sender": Object({
-                        "id": String("1249910941788598")
-                    }),
-                    "timestamp": Number(PosInt(1491150178096))
-                })
-            ]),
-            "time": Number(PosInt(1491150178150))
-        })
-    ]),
-    "object": String("page")
-})
-*/
-#[derive(Serialize, Deserialize, Debug)]
-struct WebhookPayload {
-    entry: Vec<WebhookEntry>,
-    object: String,
-}
-
-impl Default for WebhookPayload {
-    fn default() -> WebhookPayload {
-        WebhookPayload {
-            entry: Vec::new(),
-            object: String::from("ParseError"),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct WebhookEntry {
-    id: String,
-    messaging: Vec<MessageEntry>,
-    time: i64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct MessageEntry {
-    message: MessageDetailsEntry,
-    recipient: AuthorEntry,
-    sender: AuthorEntry,
-    timestamp: i64,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct MessageDetailsEntry {
-    mid: String,
-    seq: i64,
-    text: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct AuthorEntry {
-    id: String,
-}
+mod types;
+mod verification;
+use self::types::{MessengerFuture, WebhookPayload};
 
 #[derive(Clone)]
 struct Echo {
     handle: Handle,
     bot: Bot,
+    webhook_verify_token: String,
 }
 
-fn make_error(string: String) -> hyper::Error {
-    println!("error: {}", string);
-    hyper::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, string))
-}
+type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
 impl Echo {
     fn new(handle: &Handle) -> Self {
         let bot = get_bot(handle.clone());
+        let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
         Self {
             handle: handle.clone(),
             bot: bot.clone(),
+            webhook_verify_token: webhook_verify_token,
         }
     }
 
     fn handle_webhook_verification(&self, req: Request) -> MessengerFuture {
-        let mut res = Response::new();
-        println!("got webhook verification {:?}", &req);
-
-        let query = req.query().unwrap_or(&"");
-        let hub_challenge = self.bot.verify_webhook_query(query);
-
-        match hub_challenge {
-            Some(token) => {
-                res = res.with_header(ContentLength(token.len() as u64));
-                res = res.with_body(token);
-                println!("returning success");
-                Box::new(future::ok(res))
-            }
-            None => {
-                let msg = format!(
-                    "Incorrect webhook_verify_token or No hub.challenge in {}",
-                    req.uri().as_ref()
-                );
-                Box::new(future::err(make_error(msg)))
-            }
-        }
+        self::verification::handle_verification(req, &self.webhook_verify_token)
     }
 
     fn handle_webhook_post(&self, req: Request) -> MessengerFuture {
@@ -220,13 +131,7 @@ fn get_http_client(handle: Handle) -> hyper::Client<HttpsConnector> {
 fn get_bot(handle: Handle) -> Bot {
     let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
-    let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
-    Bot::new(
-        get_http_client(handle),
-        &access_token,
-        &app_secret,
-        &webhook_verify_token,
-    )
+    Bot::new(get_http_client(handle), &access_token, &app_secret, "")
 }
 
 fn main() {
