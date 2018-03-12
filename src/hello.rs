@@ -23,12 +23,13 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 
 use tokio_core::reactor::{Core, Handle};
 
-mod types;
 mod verification;
-use self::types::{MessengerFuture, WebhookPayload};
+mod receive;
+mod echo_handler;
+use self::receive::MessengerFuture;
 
 #[derive(Clone)]
-struct Echo {
+struct MessengerService {
     handle: Handle,
     bot: Bot,
     webhook_verify_token: String,
@@ -36,7 +37,7 @@ struct Echo {
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
-impl Echo {
+impl MessengerService {
     fn new(handle: &Handle) -> Self {
         let bot = get_bot(handle.clone());
         let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
@@ -53,41 +54,13 @@ impl Echo {
 
     fn handle_webhook_post(&self, req: Request) -> MessengerFuture {
         let bot = self.bot.clone();
-        let body_fut = req.body().fold(Vec::new(), |mut acc, chunk| {
-            acc.extend_from_slice(&chunk);
-            Ok::<_, hyper::Error>(acc)
-        });
-        let response_fut = body_fut.and_then(move |body| {
-            let json: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
-            println!("got webhook: {}", json.to_string());
-            println!("got webhook: {:?}", json);
-            let typed_json: WebhookPayload = serde_json::from_slice(&body).unwrap_or_default();
-            println!("got typed: {:?}", typed_json);
-
-            let mut message_futures = Vec::new();
-            for entry in &typed_json.entry {
-                for message in &entry.messaging {
-                    let text = &message.message.text;
-                    let sender = &message.sender.id;
-                    message_futures.push(bot.send_text_message(sender, text));
-                }
-            }
-            let joined_futures = future::join_all(message_futures);
-
-            let response_future = joined_futures.and_then(move |v| {
-                println!("message sending done: {:?}", v);
-
-                let mut res = Response::new();
-                res = res.with_body(serde_json::to_string(&typed_json).unwrap_or_default());
-                Ok(res)
-            });
-            response_future
-        });
+        let body_fut = req.body().concat2();
+        let response_fut = body_fut.and_then(move |body| receive::handle_webhook_body(&bot, &body));
         Box::new(response_fut)
     }
 }
 
-impl Service for Echo {
+impl Service for MessengerService {
     type Request = Request;
     type Response = Response;
     type Error = hyper::Error;
@@ -147,7 +120,9 @@ fn main() {
     let client_handle = core.handle();
 
     let serve = Http::new()
-        .serve_addr_handle(&addr, &handle, move || Ok(Echo::new(&client_handle)))
+        .serve_addr_handle(&addr, &handle, move || {
+            Ok(MessengerService::new(&client_handle))
+        })
         .unwrap();
     println!(
         "Listening on http://{}...",

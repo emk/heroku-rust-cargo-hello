@@ -1,10 +1,17 @@
 extern crate futures;
 
-use futures::Future;
+use std;
+
+use futures::{future, Future};
 use hyper;
 use hyper::server::Response;
+use rmessenger::bot::Bot;
+use serde_json;
+
+use echo_handler;
 
 pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
+pub type StringFuture = Box<Future<Item = std::string::String, Error = hyper::Error>>;
 
 /*
 The following structs are intended to represent the following webhook payload:
@@ -74,4 +81,32 @@ pub struct MessageDetailsEntry {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AuthorEntry {
     pub id: String,
+}
+
+pub fn handle_webhook_payload(bot: &Bot, payload: WebhookPayload) -> MessengerFuture {
+    let mut message_futures = Vec::new();
+    for entry in &payload.entry {
+        for message in &entry.messaging {
+            // FIXME: Stop hard-coding this. I think that the answer might be to
+            // create a JsonDispatcher that looks a bit like a Gotham Router.
+            // https://github.com/gotham-rs/gotham/blob/master/examples/routing/http_verbs/src/main.rs#L35
+            message_futures.push(echo_handler::handle_message(bot, message));
+        }
+    }
+    let joined_futures = future::join_all(message_futures);
+
+    let response_future = joined_futures.and_then(move |v| {
+        println!("message sending done: {:?}", v);
+
+        let mut res = Response::new();
+        res = res.with_body(serde_json::to_string(&payload).unwrap_or_default());
+        Ok(res)
+    });
+    Box::new(response_future)
+}
+
+pub fn handle_webhook_body(bot: &Bot, body: &[u8]) -> MessengerFuture {
+    let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
+    println!("got payload: {:?}", payload);
+    handle_webhook_payload(&bot, payload)
 }

@@ -5,7 +5,8 @@ use hyper::header::ContentLength;
 use hyper::server::{Request, Response};
 use url::form_urlencoded;
 
-use types;
+use receive::MessengerFuture;
+
 fn make_error(string: String) -> hyper::Error {
     println!("error: {}", string);
     hyper::Error::Io(std::io::Error::new(std::io::ErrorKind::Other, string))
@@ -35,7 +36,7 @@ pub fn verify_webhook_query(query: &str, webhook_verify_token: &str) -> Option<S
     }
 }
 
-pub fn handle_verification(req: Request, webhook_verify_token: &str) -> types::MessengerFuture {
+pub fn handle_verification(req: Request, webhook_verify_token: &str) -> MessengerFuture {
     let mut res = Response::new();
     println!("got webhook verification {:?}", &req);
 
