@@ -110,7 +110,6 @@ pub fn handle_webhook_payload(
 }
 
 pub fn handle_webhook_body(app: &FacebookApp, handle: &Handle, body: &[u8]) -> MessengerFuture {
-    println!("got body: {:?}", body);
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
     handle_webhook_payload(&app, handle, payload)
