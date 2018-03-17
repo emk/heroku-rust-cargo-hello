@@ -28,8 +28,6 @@ fn get_server_port() -> u16 {
     port_str.parse().unwrap_or(8080)
 }
 
-// self::verification::handle_verification(req, &self.webhook_verify_token)
-
 fn router() -> Router {
     build_simple_router(|route| {
         route
