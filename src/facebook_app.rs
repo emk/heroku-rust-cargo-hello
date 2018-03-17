@@ -1,10 +1,15 @@
+use gotham::handler::{Handler, HandlerFuture, NewHandler};
+use gotham::http::response::create_response;
+use gotham::state::State;
+use gotham::state::FromState;
 use hyper;
 use hyper_tls;
 use hyper::client::Request;
-use hyper::Post;
+use hyper::{Method, StatusCode};
 use hyper::header::ContentType;
 use hyper::mime::APPLICATION_JSON;
-use futures::{Future, Stream};
+use std::io;
+use futures::{future, Future, Stream};
 use url::form_urlencoded;
 use std::env;
 use hyper::client::HttpConnector;
@@ -12,6 +17,7 @@ use tokio_core::reactor::Handle;
 
 use receive;
 use echo_handler;
+use verification;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
 pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
@@ -29,12 +35,32 @@ pub fn get_app(message_callback: Option<MessageCallback>) -> FacebookApp {
     }
 }
 
+#[derive(Clone)]
 pub struct FacebookApp {
     app_secret: String,
     webhook_verify_token: String,
     // TODO: These things should be different per page.
     access_token: String,
     pub message_callback: Option<MessageCallback>,
+}
+impl NewHandler for FacebookApp {
+    type Instance = Self;
+    fn new_handler(&self) -> io::Result<Self::Instance> {
+        Ok(self.clone())
+    }
+}
+impl Handler for FacebookApp {
+    fn handle(self, state: State) -> Box<HandlerFuture> {
+        let method = Method::borrow_from(&state).clone();
+        match method {
+            Method::Post => receive::handle_webhook_post(state, self),
+            Method::Get => verification::handle_verification(state, self),
+            _ => {
+                let response = create_response(&state, StatusCode::MethodNotAllowed, None);
+                Box::new(future::ok((state, response)))
+            }
+        }
+    }
 }
 
 impl FacebookApp {
@@ -146,7 +172,7 @@ impl Bot {
         body: String,
     ) -> StringFuture {
         let request_url = format!("{}{}{}", url, "?", data).parse().unwrap();
-        let mut request = Request::new(Post, request_url);
+        let mut request = Request::new(Method::Post, request_url);
         request.headers_mut().set(ContentType(APPLICATION_JSON));
         request.set_body(body.to_owned());
 

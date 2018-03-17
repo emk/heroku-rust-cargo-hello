@@ -11,8 +11,7 @@ use tokio_core::reactor::Handle;
 
 use mime;
 
-use echo_handler;
-use facebook_app::{get_app, FacebookApp};
+use facebook_app::FacebookApp;
 
 pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 
@@ -116,10 +115,9 @@ pub fn handle_webhook_body(app: &FacebookApp, handle: &Handle, body: &[u8]) -> M
     handle_webhook_payload(&app, handle, payload)
 }
 
-pub fn handle_webhook_post(mut state: State) -> Box<HandlerFuture> {
+pub fn handle_webhook_post(mut state: State, app: FacebookApp) -> Box<HandlerFuture> {
     let handle = Handle::borrow_from(&state).clone();
     // FIXME: make the FacebookApp once in main() and pluck it out here.
-    let app = get_app(Some(echo_handler::handle_message));
 
     let f = Body::take_from(&mut state)
         .concat2()

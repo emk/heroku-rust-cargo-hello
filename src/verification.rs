@@ -1,13 +1,14 @@
+use futures::future;
+use gotham::handler::HandlerFuture;
 use gotham::http::response::create_response;
 use gotham::state::{FromState, State};
-use hyper::{Response, StatusCode, Uri};
+use hyper::{StatusCode, Uri};
 use hyper::mime::TEXT_PLAIN;
 
 use facebook_app;
 
-pub fn handle_verification(state: State) -> (State, Response) {
+pub fn handle_verification(state: State, app: facebook_app::FacebookApp) -> Box<HandlerFuture> {
     let uri = Uri::borrow_from(&state).clone();
-    let app = facebook_app::get_app(None);
 
     let query = uri.query().unwrap_or(&"");
     let hub_challenge = app.verify_webhook_query(&query);
@@ -20,7 +21,7 @@ pub fn handle_verification(state: State) -> (State, Response) {
                 StatusCode::Ok,
                 Some((challenge.as_bytes().to_vec(), TEXT_PLAIN)),
             );
-            (state, res)
+            Box::new(future::ok((state, res)))
         }
         None => {
             let msg = format!(
@@ -32,7 +33,7 @@ pub fn handle_verification(state: State) -> (State, Response) {
                 StatusCode::BadRequest,
                 Some((msg.as_bytes().to_vec(), TEXT_PLAIN)),
             );
-            (state, res)
+            Box::new(future::ok((state, res)))
         }
     }
 }

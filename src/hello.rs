@@ -13,6 +13,7 @@ extern crate url;
 
 use gotham::router::Router;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
+use hyper::Method;
 
 use std::env;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
@@ -28,30 +29,12 @@ fn get_server_port() -> u16 {
     port_str.parse().unwrap_or(8080)
 }
 
-/// TODO:
-/// Currently, we call facebook_app::get_app() every time we handle a request, to
-/// construct a bot out of global environment variables. We also hard-code
-/// echo_handler::handle_message() as the callback in
-/// receive::handle_webhook_payload(). This is all terrible. Here are a few
-/// ideas of things that we could do to make this more felxible:
-///
-/// * Make a FacebookApp in main()
-///   and attach it to the handlers that we use in Router. This will allow us to
-///   run multiple facebook apps from the same server.
-/// * It should be possible to attach the same app to multiple pages, by
-///   providing multiple access tokens. It might be sensible to create a
-///   FacebookApp struct that holds an APP_SECRET, a WEBHOOK_VERIFY_TOKEN, and
-///   a mapping from PAGE_ID to ACCESS_TOKEN.
-/// * Make FacebookApp expose get and post callbacks (that implement
-///   gotham::handler::Handler) for easy configuration.
 fn router() -> Router {
     build_simple_router(|route| {
+        let app = facebook_app::get_app(Some(echo_handler::handle_message));
         route
-            .get("/webhook")
-            .to(self::verification::handle_verification);
-        route
-            .post("/webhook")
-            .to(self::receive::handle_webhook_post);
+            .request(vec![Method::Get, Method::Post], "/webhook")
+            .to_new_handler(app);
     })
 }
 
