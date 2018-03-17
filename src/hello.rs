@@ -29,13 +29,13 @@ fn get_server_port() -> u16 {
 }
 
 /// TODO:
-/// Currently, we call facebook_app::get_bot() every time we handle a request, to
+/// Currently, we call facebook_app::get_app() every time we handle a request, to
 /// construct a bot out of global environment variables. We also hard-code
 /// echo_handler::handle_message() as the callback in
-/// receive::handle_webhook_payload(). This is all terrible. Here are a few\
+/// receive::handle_webhook_payload(). This is all terrible. Here are a few
 /// ideas of things that we could do to make this more felxible:
 ///
-/// * Make Bot not need a Handle on init, so that we can construct one in main()
+/// * Make a FacebookApp in main()
 ///   and attach it to the handlers that we use in Router. This will allow us to
 ///   run multiple facebook apps from the same server.
 /// * It should be possible to attach the same app to multiple pages, by

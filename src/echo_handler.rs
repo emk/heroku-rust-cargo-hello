@@ -1,5 +1,5 @@
-use facebook_app::Bot;
-use receive::{MessageEntry, StringFuture};
+use facebook_app::{Bot, StringFuture};
+use receive::MessageEntry;
 
 pub fn handle_message(bot: &Bot, message: &MessageEntry) -> StringFuture {
     let text = &message.message.text;

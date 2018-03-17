@@ -13,7 +13,8 @@ use tokio_core::reactor::Handle;
 use receive;
 use echo_handler;
 
-type MessageCallback = fn(&Bot, &receive::MessageEntry) -> receive::StringFuture;
+type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
+pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
 
 pub fn get_app(message_callback: Option<MessageCallback>) -> FacebookApp {
     let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
@@ -62,11 +63,19 @@ impl FacebookApp {
             return None;
         }
     }
+
+    pub fn handle_message(&self, handle: &Handle, message: &receive::MessageEntry) -> StringFuture {
+        let bot = get_bot(self, handle);
+        let callback = self.message_callback
+            .unwrap_or(echo_handler::handle_message);
+
+        callback(&bot, message)
+    }
 }
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
-fn get_http_client(handle: Handle) -> hyper::Client<HttpsConnector> {
+fn get_http_client(handle: &Handle) -> hyper::Client<HttpsConnector> {
     let client = hyper::Client::configure()
         .connector(hyper_tls::HttpsConnector::new(4, &handle).unwrap())
         .build(&handle);
@@ -74,9 +83,7 @@ fn get_http_client(handle: Handle) -> hyper::Client<HttpsConnector> {
     client
 }
 
-pub fn get_bot(handle: Handle) -> Bot {
-    let app = get_app(Some(echo_handler::handle_message));
-    println!("WEBHOOK_VERIFY_TOKEN: {}", app.webhook_verify_token);
+pub fn get_bot(app: &FacebookApp, handle: &Handle) -> Bot {
     Bot::new(
         get_http_client(handle),
         &app.access_token,
@@ -85,6 +92,8 @@ pub fn get_bot(handle: Handle) -> Bot {
     )
 }
 
+// TODO: rename this and generally re-work it: it's currently mostly copy-paste
+// from my fork of rmessenger.
 #[derive(Clone)]
 pub struct Bot {
     client: hyper::Client<hyper_tls::HttpsConnector<hyper::client::HttpConnector>>,
@@ -110,7 +119,7 @@ impl Bot {
         }
     }
 
-    pub fn send_text_message(&self, recipient_id: &str, message: &str) -> receive::StringFuture {
+    pub fn send_text_message(&self, recipient_id: &str, message: &str) -> StringFuture {
         let payload = json!({
             "recipient": {"id": recipient_id},
             "message": {"text": message}
@@ -120,7 +129,7 @@ impl Bot {
     }
 
     /// send payload.
-    fn send_raw(&self, payload: String) -> receive::StringFuture {
+    fn send_raw(&self, payload: String) -> StringFuture {
         let request_endpoint = format!("{}{}", self.graph_url, "/me/messages");
 
         let data = format!("{}{}", "access_token=", self.access_token).to_string();
@@ -135,7 +144,7 @@ impl Bot {
         url: String,
         data: String,
         body: String,
-    ) -> receive::StringFuture {
+    ) -> StringFuture {
         let request_url = format!("{}{}{}", url, "?", data).parse().unwrap();
         let mut request = Request::new(Post, request_url);
         request.headers_mut().set(ContentType(APPLICATION_JSON));

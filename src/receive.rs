@@ -1,7 +1,5 @@
 extern crate futures;
 
-use std;
-
 use futures::{future, Future, Stream};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham::http::response::create_response;
@@ -14,10 +12,9 @@ use tokio_core::reactor::Handle;
 use mime;
 
 use echo_handler;
-use facebook_app::{get_bot, Bot};
+use facebook_app::{get_app, FacebookApp};
 
 pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
-pub type StringFuture = Box<Future<Item = std::string::String, Error = hyper::Error>>;
 
 /*
 The following structs are intended to represent the following webhook payload:
@@ -88,14 +85,17 @@ pub struct MessageDetailsEntry {
 pub struct AuthorEntry {
     pub id: String,
 }
-pub fn handle_webhook_payload(bot: &Bot, payload: WebhookPayload) -> MessengerFuture {
+
+pub fn handle_webhook_payload(
+    app: &FacebookApp,
+    handle: &Handle,
+    payload: WebhookPayload,
+) -> MessengerFuture {
     let mut message_futures = Vec::new();
     for entry in &payload.entry {
         for message in &entry.messaging {
-            // FIXME: Stop hard-coding this. I think that the answer might be to
-            // create a JsonDispatcher that looks a bit like a Gotham Router.
-            // https://github.com/gotham-rs/gotham/blob/master/examples/routing/http_verbs/src/main.rs#L35
-            message_futures.push(echo_handler::handle_message(bot, message));
+            let f = app.handle_message(handle, message);
+            message_futures.push(f);
         }
     }
     let joined_futures = future::join_all(message_futures);
@@ -110,19 +110,20 @@ pub fn handle_webhook_payload(bot: &Bot, payload: WebhookPayload) -> MessengerFu
     Box::new(response_future)
 }
 
-pub fn handle_webhook_body(bot: &Bot, body: &[u8]) -> MessengerFuture {
+pub fn handle_webhook_body(app: &FacebookApp, handle: &Handle, body: &[u8]) -> MessengerFuture {
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
-    handle_webhook_payload(&bot, payload)
+    handle_webhook_payload(&app, handle, payload)
 }
 
 pub fn handle_webhook_post(mut state: State) -> Box<HandlerFuture> {
     let handle = Handle::borrow_from(&state).clone();
-    let bot = get_bot(handle);
+    // FIXME: make the FacebookApp once in main() and pluck it out here.
+    let app = get_app(Some(echo_handler::handle_message));
 
     let f = Body::take_from(&mut state)
         .concat2()
-        .and_then(move |body| handle_webhook_body(&bot, &body));
+        .and_then(move |body| handle_webhook_body(&app, &handle, &body));
 
     Box::new(f.then(move |result| match result {
         Ok(_) => {
