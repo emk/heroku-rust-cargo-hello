@@ -2,6 +2,7 @@ extern crate futures;
 extern crate gotham;
 extern crate hyper;
 extern crate hyper_tls;
+extern crate mime;
 extern crate pretty_env_logger;
 extern crate rmessenger;
 #[macro_use]
@@ -97,6 +98,9 @@ fn router() -> Router {
         route
             .get("/webhook")
             .to(self::verification::handle_verification);
+        route
+            .post("/webhook")
+            .to(self::receive::handle_webhook_post);
     })
 }
 
@@ -111,6 +115,8 @@ fn main() {
     let mut core = Core::new().unwrap();
     let handle = core.handle();
     let client_handle = core.handle();
+
+    gotham::start(addr, router());
 
     let serve = Http::new()
         .serve_addr_handle(&addr, &handle, move || {
@@ -136,6 +142,4 @@ fn main() {
     );
 
     core.run(future::empty::<(), ()>()).unwrap();
-
-    gotham::start(addr, router())
 }

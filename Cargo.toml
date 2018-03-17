@@ -24,6 +24,7 @@ gotham_derive = "0.2"
 futures = "0.1.18"
 hyper = "0.11.19"
 hyper-tls = "0.1.2"
+mime = "*"
 pretty_env_logger = "0.2.2"
 rmessenger = { git = "https://github.com/alsuren/rmessenger", branch = "master" }
 serde = "1.0.27"
