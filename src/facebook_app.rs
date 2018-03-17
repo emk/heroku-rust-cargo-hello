@@ -11,7 +11,6 @@ use hyper::mime::APPLICATION_JSON;
 use std::io;
 use futures::{future, Future, Stream};
 use url::form_urlencoded;
-use std::env;
 use hyper::client::HttpConnector;
 use tokio_core::reactor::Handle;
 
@@ -23,36 +22,19 @@ use std::collections::HashMap;
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
 pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
 
-// TODO: move this into hello.rs... and rename hello.rs
-pub fn get_app() -> FacebookApp {
-    let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
-    let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
-
-    let mut page_config = HashMap::new();
-    page_config.insert(
-        env::var("ECHO_PAGE_ID").unwrap_or(String::new()),
-        FacebookPage {
-            access_token: env::var("ECHO_ACCESS_TOKEN").unwrap_or(String::new()),
-            message_callback: Some(echo_handler::echo_message),
-        },
-    );
-    page_config.insert(
-        env::var("PREFIX_PAGE_ID").unwrap_or(String::new()),
-        FacebookPage {
-            access_token: env::var("PREFIX_ACCESS_TOKEN").unwrap_or(String::new()),
-            message_callback: Some(echo_handler::echo_message_with_prefix),
-        },
-    );
-    FacebookApp {
-        app_secret: app_secret.to_string(),
-        webhook_verify_token: webhook_verify_token.to_string(),
-        page_config: page_config,
-    }
-}
 #[derive(Clone)]
 pub struct FacebookPage {
     access_token: String,
     message_callback: Option<MessageCallback>,
+}
+
+impl FacebookPage {
+    pub fn new(access_token: String, message_callback: Option<MessageCallback>) -> FacebookPage {
+        FacebookPage {
+            access_token: access_token,
+            message_callback: message_callback,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -83,6 +65,17 @@ impl Handler for FacebookApp {
 }
 
 impl FacebookApp {
+    pub fn new(
+        app_secret: String,
+        webhook_verify_token: String,
+        page_config: HashMap<String, FacebookPage>,
+    ) -> FacebookApp {
+        FacebookApp {
+            app_secret: app_secret,
+            webhook_verify_token: webhook_verify_token,
+            page_config: page_config,
+        }
+    }
     /// Verify the Get query (after the ?) of a webhook verification request
     /// (see https://developers.facebook.com/docs/graph-api/webhooks#setup)
     /// and return either Some(hub.challenge) for you to put in the body of your

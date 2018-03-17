@@ -17,11 +17,36 @@ use hyper::Method;
 
 use std::env;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::collections::HashMap;
 
 mod verification;
 mod receive;
 mod echo_handler;
 mod facebook_app;
+
+use facebook_app::{FacebookApp, FacebookPage};
+
+pub fn get_app() -> FacebookApp {
+    let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
+    let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
+
+    let mut page_config = HashMap::new();
+    page_config.insert(
+        env::var("ECHO_PAGE_ID").unwrap_or(String::new()),
+        FacebookPage::new(
+            env::var("ECHO_ACCESS_TOKEN").unwrap_or(String::new()),
+            Some(echo_handler::echo_message),
+        ),
+    );
+    page_config.insert(
+        env::var("PREFIX_PAGE_ID").unwrap_or(String::new()),
+        FacebookPage::new(
+            env::var("PREFIX_ACCESS_TOKEN").unwrap_or(String::new()),
+            Some(echo_handler::echo_message_with_prefix),
+        ),
+    );
+    FacebookApp::new(app_secret, webhook_verify_token, page_config)
+}
 
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> u16 {
@@ -31,7 +56,7 @@ fn get_server_port() -> u16 {
 
 fn router() -> Router {
     build_simple_router(|route| {
-        let app = facebook_app::get_app();
+        let app = get_app();
         route
             .request(vec![Method::Get, Method::Post], "/webhook")
             .to_new_handler(app);
