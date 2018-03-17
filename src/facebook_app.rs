@@ -27,14 +27,19 @@ pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
 pub fn get_app() -> FacebookApp {
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
     let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
-    let page_id = env::var("PAGE_ID").unwrap_or(String::new());
-    let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
 
     let mut page_config = HashMap::new();
     page_config.insert(
-        page_id,
+        env::var("ECHO_PAGE_ID").unwrap_or(String::new()),
         FacebookPage {
-            access_token: access_token,
+            access_token: env::var("ECHO_ACCESS_TOKEN").unwrap_or(String::new()),
+            message_callback: Some(echo_handler::echo_message),
+        },
+    );
+    page_config.insert(
+        env::var("PREFIX_PAGE_ID").unwrap_or(String::new()),
+        FacebookPage {
+            access_token: env::var("PREFIX_ACCESS_TOKEN").unwrap_or(String::new()),
             message_callback: Some(echo_handler::echo_message_with_prefix),
         },
     );
