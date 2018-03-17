@@ -3,15 +3,14 @@ extern crate futures;
 use std;
 
 use futures::{future, Future, Stream};
+use gotham::handler::{HandlerFuture, IntoHandlerError};
+use gotham::http::response::create_response;
+use gotham::state::{FromState, State};
 use hyper;
-use hyper::{Body, Headers, HttpVersion, Method, Response, StatusCode, Uri};
+use hyper::{Body, Response, StatusCode};
 use rmessenger::bot::Bot;
 use serde_json;
 use tokio_core::reactor::Handle;
-use gotham::http::response::create_response;
-
-use gotham::state::{FromState, State};
-use gotham::handler::{HandlerFuture, IntoHandlerError};
 
 use mime;
 
