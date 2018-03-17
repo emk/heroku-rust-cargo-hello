@@ -4,12 +4,12 @@ use hyper::{Response, StatusCode, Uri};
 use hyper::mime::TEXT_PLAIN;
 use tokio_core::reactor::Handle;
 
-use send;
+use facebook_app;
 
 pub fn handle_verification(state: State) -> (State, Response) {
     let uri = Uri::borrow_from(&state).clone();
     let handle = Handle::borrow_from(&state).clone();
-    let bot = send::get_bot(handle);
+    let bot = facebook_app::get_bot(handle);
 
     let query = uri.query().unwrap_or(&"");
     let hub_challenge = bot.verify_webhook_query(&query);

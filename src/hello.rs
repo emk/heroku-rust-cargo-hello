@@ -20,7 +20,6 @@ use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 mod verification;
 mod receive;
 mod echo_handler;
-mod send;
 mod facebook_app;
 
 /// Look up our server port number in PORT, for compatibility with Heroku.
@@ -30,7 +29,7 @@ fn get_server_port() -> u16 {
 }
 
 /// TODO:
-/// Currently, we call send::get_bot() every time we handle a request, to
+/// Currently, we call facebook_app::get_bot() every time we handle a request, to
 /// construct a bot out of global environment variables. We also hard-code
 /// echo_handler::handle_message() as the callback in
 /// receive::handle_webhook_payload(). This is all terrible. Here are a few\

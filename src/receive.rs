@@ -13,9 +13,8 @@ use tokio_core::reactor::Handle;
 
 use mime;
 
-use send;
 use echo_handler;
-use facebook_app::Bot;
+use facebook_app::{get_bot, Bot};
 
 pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 pub type StringFuture = Box<Future<Item = std::string::String, Error = hyper::Error>>;
@@ -119,7 +118,7 @@ pub fn handle_webhook_body(bot: &Bot, body: &[u8]) -> MessengerFuture {
 
 pub fn handle_webhook_post(mut state: State) -> Box<HandlerFuture> {
     let handle = Handle::borrow_from(&state).clone();
-    let bot = send::get_bot(handle);
+    let bot = get_bot(handle);
 
     let f = Body::take_from(&mut state)
         .concat2()
