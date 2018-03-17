@@ -18,31 +18,45 @@ use tokio_core::reactor::Handle;
 use receive;
 use echo_handler;
 use verification;
+use std::collections::HashMap;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
 pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
 
-pub fn get_app(message_callback: Option<MessageCallback>) -> FacebookApp {
-    let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
+// TODO: move this into hello.rs... and rename hello.rs
+pub fn get_app() -> FacebookApp {
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
     let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
+    let page_id = env::var("PAGE_ID").unwrap_or(String::new());
+    let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
 
+    let mut page_config = HashMap::new();
+    page_config.insert(
+        page_id,
+        FacebookPage {
+            access_token: access_token,
+            message_callback: Some(echo_handler::echo_message_with_prefix),
+        },
+    );
     FacebookApp {
         app_secret: app_secret.to_string(),
         webhook_verify_token: webhook_verify_token.to_string(),
-        access_token: access_token.to_string(),
-        message_callback: message_callback,
+        page_config: page_config,
     }
+}
+#[derive(Clone)]
+pub struct FacebookPage {
+    access_token: String,
+    message_callback: Option<MessageCallback>,
 }
 
 #[derive(Clone)]
 pub struct FacebookApp {
     app_secret: String,
     webhook_verify_token: String,
-    // TODO: These things should be different per page.
-    access_token: String,
-    pub message_callback: Option<MessageCallback>,
+    page_config: HashMap<String, FacebookPage>,
 }
+
 impl NewHandler for FacebookApp {
     type Instance = Self;
     fn new_handler(&self) -> io::Result<Self::Instance> {
@@ -91,10 +105,25 @@ impl FacebookApp {
     }
 
     pub fn handle_message(&self, handle: &Handle, message: &receive::MessageEntry) -> StringFuture {
-        let bot = get_bot(self, handle);
-        let callback = self.message_callback
-            .unwrap_or(echo_handler::handle_message);
-
+        let id = message.recipient.id.clone();
+        let mut message_callback = None;
+        let mut access_token = None;
+        match self.page_config.get(&id) {
+            Some(page) => {
+                access_token = Some(page.access_token.clone());
+                message_callback = page.message_callback;
+            }
+            None => {
+                println!("got webhook for unmanaged page {}", id);
+            }
+        }
+        let bot = Bot::new(
+            get_http_client(handle),
+            &access_token.unwrap_or("".to_string()),
+            &self.app_secret,
+            &self.webhook_verify_token,
+        );
+        let callback = message_callback.unwrap_or(echo_handler::echo_message);
         callback(&bot, message)
     }
 }
@@ -107,15 +136,6 @@ fn get_http_client(handle: &Handle) -> hyper::Client<HttpsConnector> {
         .build(&handle);
 
     client
-}
-
-pub fn get_bot(app: &FacebookApp, handle: &Handle) -> Bot {
-    Bot::new(
-        get_http_client(handle),
-        &app.access_token,
-        &app.app_secret,
-        &app.webhook_verify_token,
-    )
 }
 
 // TODO: rename this and generally re-work it: it's currently mostly copy-paste

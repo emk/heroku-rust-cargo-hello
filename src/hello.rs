@@ -31,7 +31,7 @@ fn get_server_port() -> u16 {
 
 fn router() -> Router {
     build_simple_router(|route| {
-        let app = facebook_app::get_app(Some(echo_handler::handle_message));
+        let app = facebook_app::get_app();
         route
             .request(vec![Method::Get, Method::Post], "/webhook")
             .to_new_handler(app);
