@@ -12,22 +12,22 @@ pub fn handle_verification(state: State) -> (State, Response) {
     let bot = send::get_bot(handle);
 
     let query = uri.query().unwrap_or(&"");
-    let hub_challenge = bot.verify_webhook_query(query);
+    let hub_challenge = bot.verify_webhook_query(&query);
 
     match hub_challenge {
-        Some(token) => {
+        Some(challenge) => {
             println!("returning success");
             let res = create_response(
                 &state,
                 StatusCode::Ok,
-                Some((token.as_bytes().to_vec(), TEXT_PLAIN)),
+                Some((challenge.as_bytes().to_vec(), TEXT_PLAIN)),
             );
             (state, res)
         }
         None => {
             let msg = format!(
                 "Incorrect webhook_verify_token or No hub.challenge in {}",
-                uri
+                query
             );
             let res = create_response(
                 &state,

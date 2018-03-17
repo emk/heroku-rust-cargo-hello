@@ -20,6 +20,7 @@ pub fn get_bot(handle: Handle) -> Bot {
     let access_token = env::var("ACCESS_TOKEN").unwrap_or(String::new());
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());
     let webhook_verify_token = env::var("WEBHOOK_VERIFY_TOKEN").unwrap_or(String::new());
+    println!("WEBHOOK_VERIFY_TOKEN: {}", webhook_verify_token);
     Bot::new(
         get_http_client(handle),
         &access_token,
