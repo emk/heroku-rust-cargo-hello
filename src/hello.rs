@@ -4,7 +4,6 @@ extern crate hyper;
 extern crate hyper_tls;
 extern crate mime;
 extern crate pretty_env_logger;
-extern crate rmessenger;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
