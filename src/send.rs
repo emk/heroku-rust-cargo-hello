@@ -4,7 +4,8 @@ use hyper;
 use hyper_tls;
 use hyper::client::HttpConnector;
 use tokio_core::reactor::Handle;
-use rmessenger::bot::Bot;
+
+use facebook_app::Bot;
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 

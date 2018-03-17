@@ -1,5 +1,4 @@
-use rmessenger::bot::Bot;
-
+use facebook_app::Bot;
 use receive::{MessageEntry, StringFuture};
 
 pub fn handle_message(bot: &Bot, message: &MessageEntry) -> StringFuture {

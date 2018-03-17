@@ -7,6 +7,7 @@ extern crate pretty_env_logger;
 extern crate rmessenger;
 #[macro_use]
 extern crate serde_derive;
+#[macro_use]
 extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
@@ -21,6 +22,7 @@ mod verification;
 mod receive;
 mod echo_handler;
 mod send;
+mod facebook_app;
 
 /// Look up our server port number in PORT, for compatibility with Heroku.
 fn get_server_port() -> u16 {

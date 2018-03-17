@@ -8,7 +8,6 @@ use gotham::http::response::create_response;
 use gotham::state::{FromState, State};
 use hyper;
 use hyper::{Body, Response, StatusCode};
-use rmessenger::bot::Bot;
 use serde_json;
 use tokio_core::reactor::Handle;
 
@@ -16,6 +15,7 @@ use mime;
 
 use send;
 use echo_handler;
+use facebook_app::Bot;
 
 pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 pub type StringFuture = Box<Future<Item = std::string::String, Error = hyper::Error>>;
