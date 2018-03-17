@@ -2,17 +2,15 @@ use gotham::http::response::create_response;
 use gotham::state::{FromState, State};
 use hyper::{Response, StatusCode, Uri};
 use hyper::mime::TEXT_PLAIN;
-use tokio_core::reactor::Handle;
 
 use facebook_app;
 
 pub fn handle_verification(state: State) -> (State, Response) {
     let uri = Uri::borrow_from(&state).clone();
-    let handle = Handle::borrow_from(&state).clone();
-    let bot = facebook_app::get_bot(handle);
+    let app = facebook_app::get_app(None);
 
     let query = uri.query().unwrap_or(&"");
-    let hub_challenge = bot.verify_webhook_query(&query);
+    let hub_challenge = app.verify_webhook_query(&query);
 
     match hub_challenge {
         Some(challenge) => {
