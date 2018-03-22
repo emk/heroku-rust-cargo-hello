@@ -15,7 +15,7 @@ use hyper::client::HttpConnector;
 use tokio_core::reactor::Handle;
 
 use receive;
-use echo_handler;
+use games;
 use verification;
 use std::collections::HashMap;
 
@@ -121,7 +121,7 @@ impl FacebookApp {
             &self.app_secret,
             &self.webhook_verify_token,
         );
-        let callback = message_callback.unwrap_or(echo_handler::echo_message);
+        let callback = message_callback.unwrap_or(games::echo::echo_message);
         callback(&bot, message)
     }
 }

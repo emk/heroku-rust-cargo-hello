@@ -21,8 +21,8 @@ use std::collections::HashMap;
 
 mod verification;
 mod receive;
-mod echo_handler;
 mod facebook_app;
+mod games;
 
 use facebook_app::{FacebookApp, FacebookPage};
 
@@ -35,14 +35,14 @@ pub fn get_app() -> FacebookApp {
         env::var("ECHO_PAGE_ID").unwrap_or(String::new()),
         FacebookPage::new(
             env::var("ECHO_ACCESS_TOKEN").unwrap_or(String::new()),
-            Some(echo_handler::echo_message),
+            Some(games::echo::echo_message),
         ),
     );
     page_config.insert(
         env::var("PREFIX_PAGE_ID").unwrap_or(String::new()),
         FacebookPage::new(
             env::var("PREFIX_ACCESS_TOKEN").unwrap_or(String::new()),
-            Some(echo_handler::echo_message_with_prefix),
+            Some(games::echo::echo_message_with_prefix),
         ),
     );
     FacebookApp::new(app_secret, webhook_verify_token, page_config)
