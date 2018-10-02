@@ -1,5 +1,5 @@
-use facebook_app::{Bot, StringFuture};
-use receive::MessageEntry;
+use crate::facebook_app::{Bot, StringFuture};
+use crate::receive::MessageEntry;
 
 pub fn echo_message(bot: &Bot, message: &MessageEntry) -> StringFuture {
     let text = &message.message.text;

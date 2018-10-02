@@ -11,20 +11,20 @@ extern crate serde_json;
 extern crate tokio_core;
 extern crate url;
 
-use gotham::router::Router;
 use gotham::router::builder::{build_simple_router, DefineSingleRoute, DrawRoutes};
+use gotham::router::Router;
 use hyper::Method;
 
+use std::collections::HashMap;
 use std::env;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::collections::HashMap;
 
-mod verification;
-mod receive;
 mod facebook_app;
 mod games;
+mod receive;
+mod verification;
 
-use facebook_app::{FacebookApp, FacebookPage};
+use crate::facebook_app::{FacebookApp, FacebookPage};
 
 pub fn get_app() -> FacebookApp {
     let app_secret = env::var("APP_SECRET").unwrap_or(String::new());

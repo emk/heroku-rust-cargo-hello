@@ -2,10 +2,10 @@ use futures::future;
 use gotham::handler::HandlerFuture;
 use gotham::http::response::create_response;
 use gotham::state::{FromState, State};
-use hyper::{StatusCode, Uri};
 use hyper::mime::TEXT_PLAIN;
+use hyper::{StatusCode, Uri};
 
-use facebook_app;
+use crate::facebook_app;
 
 pub fn handle_verification(state: State, app: facebook_app::FacebookApp) -> Box<HandlerFuture> {
     let uri = Uri::borrow_from(&state).clone();

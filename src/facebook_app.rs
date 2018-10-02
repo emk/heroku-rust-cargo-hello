@@ -1,22 +1,22 @@
+use futures::{future, Future, Stream};
 use gotham::handler::{Handler, HandlerFuture, NewHandler};
 use gotham::http::response::create_response;
-use gotham::state::State;
 use gotham::state::FromState;
+use gotham::state::State;
 use hyper;
-use hyper_tls;
+use hyper::client::HttpConnector;
 use hyper::client::Request;
-use hyper::{Method, StatusCode};
 use hyper::header::ContentType;
 use hyper::mime::APPLICATION_JSON;
+use hyper::{Method, StatusCode};
+use hyper_tls;
 use std::io;
-use futures::{future, Future, Stream};
-use url::form_urlencoded;
-use hyper::client::HttpConnector;
 use tokio_core::reactor::Handle;
+use url::form_urlencoded;
 
-use receive;
-use games;
-use verification;
+use crate::games;
+use crate::receive;
+use crate::verification;
 use std::collections::HashMap;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;

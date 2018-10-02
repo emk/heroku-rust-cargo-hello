@@ -11,7 +11,7 @@ use tokio_core::reactor::Handle;
 
 use mime;
 
-use facebook_app::FacebookApp;
+use crate::facebook_app::FacebookApp;
 
 pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
 
