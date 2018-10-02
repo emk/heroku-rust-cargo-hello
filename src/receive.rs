@@ -13,8 +13,6 @@ use mime;
 
 use crate::facebook_app::FacebookApp;
 
-pub type MessengerFuture = Box<Future<Item = Response, Error = hyper::Error>>;
-
 /*
 The following structs are intended to represent the following webhook payload:
 Object({
@@ -89,7 +87,7 @@ pub fn handle_webhook_payload(
     app: &FacebookApp,
     handle: &Handle,
     payload: WebhookPayload,
-) -> MessengerFuture {
+) -> impl Future<Item = Response, Error = hyper::Error> {
     let mut message_futures = Vec::new();
     for entry in &payload.entry {
         for message in &entry.messaging {
@@ -109,7 +107,11 @@ pub fn handle_webhook_payload(
     Box::new(response_future)
 }
 
-pub fn handle_webhook_body(app: &FacebookApp, handle: &Handle, body: &[u8]) -> MessengerFuture {
+pub fn handle_webhook_body(
+    app: &FacebookApp,
+    handle: &Handle,
+    body: &[u8],
+) -> impl Future<Item = Response, Error = hyper::Error> {
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
     handle_webhook_payload(&app, handle, payload)
