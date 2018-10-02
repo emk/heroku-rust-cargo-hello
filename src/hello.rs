@@ -60,7 +60,7 @@ fn router() -> Router {
     build_simple_router(|route| {
         let app = get_app();
         route
-            .request(vec![Method::Get, Method::Post], "/webhook")
+            .request(vec![Method::GET, Method::POST], "/webhook")
             .to_new_handler(app);
     })
 }

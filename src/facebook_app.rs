@@ -1,23 +1,20 @@
+use crate::games;
+use crate::receive;
+use crate::verification;
 use futures::{future, Future, Stream};
 use gotham::handler::{Handler, HandlerFuture, NewHandler};
 use gotham::http::response::create_response;
 use gotham::state::FromState;
 use gotham::state::State;
+use http::Request;
 use hyper;
 use hyper::client::HttpConnector;
-use hyper::client::Request;
-use hyper::header::ContentType;
-use hyper::mime::APPLICATION_JSON;
-use hyper::{Method, StatusCode};
+use hyper::{Body, Method, StatusCode};
 use hyper_tls;
+use std::collections::HashMap;
 use std::io;
 use tokio_core::reactor::Handle;
 use url::form_urlencoded;
-
-use crate::games;
-use crate::receive;
-use crate::verification;
-use std::collections::HashMap;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
 pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
@@ -54,10 +51,10 @@ impl Handler for FacebookApp {
     fn handle(self, state: State) -> Box<HandlerFuture> {
         let method = Method::borrow_from(&state).clone();
         match method {
-            Method::Post => receive::handle_webhook_post(state, self),
-            Method::Get => verification::handle_verification(state, self),
+            Method::POST => receive::handle_webhook_post(state, self),
+            Method::GET => verification::handle_verification(state, self),
             _ => {
-                let response = create_response(&state, StatusCode::MethodNotAllowed, None);
+                let response = create_response(&state, StatusCode::METHOD_NOT_ALLOWED, None);
                 Box::new(future::ok((state, response)))
             }
         }
@@ -129,9 +126,7 @@ impl FacebookApp {
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
 fn get_http_client(handle: &Handle) -> hyper::Client<HttpsConnector> {
-    let client = hyper::Client::configure()
-        .connector(hyper_tls::HttpsConnector::new(4, &handle).unwrap())
-        .build(&handle);
+    let client = hyper::Client::builder().build(hyper_tls::HttpsConnector::new(4).unwrap());
 
     client
 }
@@ -190,9 +185,12 @@ impl Bot {
         body: String,
     ) -> StringFuture {
         let request_url = format!("{}{}{}", url, "?", data).parse().unwrap();
-        let mut request = Request::new(Method::Post, request_url);
-        request.headers_mut().set(ContentType(APPLICATION_JSON));
-        request.set_body(body.to_owned());
+        let mut request = Request::builder()
+            .method("POST")
+            .uri(request_url)
+            .header("content type", "application/json")
+            .body(Body::from(body.to_owned()))
+            .unwrap();
 
         let fut = client
             .request(request)

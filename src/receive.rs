@@ -87,7 +87,7 @@ pub fn handle_webhook_payload(
     app: &FacebookApp,
     handle: &Handle,
     payload: WebhookPayload,
-) -> impl Future<Item = Response, Error = hyper::Error> {
+) -> impl Future<Item = Response<String>, Error = hyper::Error> {
     let mut message_futures = Vec::new();
     for entry in &payload.entry {
         for message in &entry.messaging {
@@ -100,8 +100,7 @@ pub fn handle_webhook_payload(
     let response_future = joined_futures.and_then(move |v| {
         println!("message sending done: {:?}", v);
 
-        let mut res = Response::new();
-        res = res.with_body(serde_json::to_string(&payload).unwrap_or_default());
+        let res = Response::new(serde_json::to_string(&payload).unwrap_or_default());
         Ok(res)
     });
     Box::new(response_future)
@@ -111,7 +110,7 @@ pub fn handle_webhook_body(
     app: &FacebookApp,
     handle: &Handle,
     body: &[u8],
-) -> impl Future<Item = Response, Error = hyper::Error> {
+) -> impl Future<Item = Response<String>, Error = hyper::Error> {
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
     handle_webhook_payload(&app, handle, payload)
@@ -123,13 +122,13 @@ pub fn handle_webhook_post(mut state: State, app: FacebookApp) -> Box<HandlerFut
 
     let f = Body::take_from(&mut state)
         .concat2()
-        .and_then(move |body| handle_webhook_body(&app, &handle, &body));
+        .and_then(move |body: Body| handle_webhook_body(&app, &handle, &body));
 
     Box::new(f.then(move |result| match result {
         Ok(_) => {
             let res = create_response(
                 &state,
-                StatusCode::Ok,
+                StatusCode::OK,
                 Some((b"".to_vec(), mime::TEXT_PLAIN)),
             );
             Ok((state, res))
