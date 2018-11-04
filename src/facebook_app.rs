@@ -10,6 +10,7 @@ use http::Request;
 use hyper;
 use hyper::client::HttpConnector;
 use hyper::{Body, Method, StatusCode};
+use hyper::header::{CONTENT_TYPE};
 use hyper_tls;
 use std::collections::HashMap;
 use url::form_urlencoded;
@@ -188,7 +189,7 @@ impl Bot {
         let request = Request::builder()
             .method("POST")
             .uri(request_url)
-            .header("content type", "application/json")
+            .header(CONTENT_TYPE, "application/json")
             .body(Body::from(body.to_owned()))
             .unwrap();
 
