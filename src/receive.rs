@@ -2,7 +2,7 @@ extern crate futures;
 
 use futures::{future, Future, Stream};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
-use gotham::http::response::create_response;
+use gotham::helpers::http::response::create_response;
 use gotham::state::{FromState, State};
 use hyper;
 use hyper::{Body, Response, StatusCode};
@@ -129,7 +129,8 @@ pub fn handle_webhook_post(mut state: State, app: FacebookApp) -> Box<HandlerFut
             let res = create_response(
                 &state,
                 StatusCode::OK,
-                Some((b"".to_vec(), mime::TEXT_PLAIN)),
+                mime::TEXT_PLAIN,
+                b"".to_vec(),
             );
             Ok((state, res))
         }

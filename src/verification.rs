@@ -1,6 +1,6 @@
 use futures::future;
 use gotham::handler::HandlerFuture;
-use gotham::http::response::create_response;
+use gotham::helpers::http::response::create_response;
 use gotham::state::{FromState, State};
 use hyper::{StatusCode, Uri};
 use mime::TEXT_PLAIN;
@@ -19,7 +19,8 @@ pub fn handle_verification(state: State, app: facebook_app::FacebookApp) -> Box<
             let res = create_response(
                 &state,
                 StatusCode::OK,
-                Some((challenge.as_bytes().to_vec(), TEXT_PLAIN)),
+                TEXT_PLAIN,
+                challenge.as_bytes().to_vec(),
             );
             Box::new(future::ok((state, res)))
         }
@@ -31,7 +32,8 @@ pub fn handle_verification(state: State, app: facebook_app::FacebookApp) -> Box<
             let res = create_response(
                 &state,
                 StatusCode::BAD_REQUEST,
-                Some((msg.as_bytes().to_vec(), TEXT_PLAIN)),
+                TEXT_PLAIN,
+                msg.as_bytes().to_vec()
             );
             Box::new(future::ok((state, res)))
         }

@@ -3,7 +3,7 @@ use crate::receive;
 use crate::verification;
 use futures::{future, Future, Stream};
 use gotham::handler::{Handler, HandlerFuture, NewHandler};
-use gotham::http::response::create_response;
+use gotham::helpers::http::response::create_empty_response;
 use gotham::state::FromState;
 use gotham::state::State;
 use http::Request;
@@ -43,10 +43,11 @@ pub struct FacebookApp {
 
 impl NewHandler for FacebookApp {
     type Instance = Self;
-    fn new_handler(&self) -> io::Result<Self::Instance> {
+    fn new_handler(&self) -> std::result::Result<FacebookApp, gotham::error::Error> {
         Ok(self.clone())
     }
 }
+
 impl Handler for FacebookApp {
     fn handle(self, state: State) -> Box<HandlerFuture> {
         let method = Method::borrow_from(&state).clone();
@@ -54,7 +55,7 @@ impl Handler for FacebookApp {
             Method::POST => receive::handle_webhook_post(state, self),
             Method::GET => verification::handle_verification(state, self),
             _ => {
-                let response = create_response(&state, StatusCode::METHOD_NOT_ALLOWED, None);
+                let response = create_empty_response(&state, StatusCode::METHOD_NOT_ALLOWED);
                 Box::new(future::ok((state, response)))
             }
         }
