@@ -7,7 +7,6 @@ use gotham::state::{FromState, State};
 use hyper;
 use hyper::{Body, Response, StatusCode};
 use serde_json;
-use tokio_core::reactor::Handle;
 
 use mime;
 
@@ -85,13 +84,12 @@ pub struct AuthorEntry {
 
 pub fn handle_webhook_payload(
     app: &FacebookApp,
-    handle: &Handle,
     payload: WebhookPayload,
 ) -> impl Future<Item = Response<String>, Error = hyper::Error> {
     let mut message_futures = Vec::new();
     for entry in &payload.entry {
         for message in &entry.messaging {
-            let f = app.handle_message(handle, message);
+            let f = app.handle_message(message);
             message_futures.push(f);
         }
     }
@@ -108,21 +106,19 @@ pub fn handle_webhook_payload(
 
 pub fn handle_webhook_body(
     app: &FacebookApp,
-    handle: &Handle,
     body: &[u8],
 ) -> impl Future<Item = Response<String>, Error = hyper::Error> {
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
-    handle_webhook_payload(&app, handle, payload)
+    handle_webhook_payload(&app, payload)
 }
 
 pub fn handle_webhook_post(mut state: State, app: FacebookApp) -> Box<HandlerFuture> {
-    let handle = Handle::borrow_from(&state).clone();
     // FIXME: make the FacebookApp once in main() and pluck it out here.
 
     let f = Body::take_from(&mut state)
         .concat2()
-        .and_then(move |body: Body| handle_webhook_body(&app, &handle, &body));
+        .and_then(move |body: Body| handle_webhook_body(&app, &body));
 
     Box::new(f.then(move |result| match result {
         Ok(_) => {

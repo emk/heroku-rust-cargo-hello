@@ -12,8 +12,6 @@ use hyper::client::HttpConnector;
 use hyper::{Body, Method, StatusCode};
 use hyper_tls;
 use std::collections::HashMap;
-use std::io;
-use tokio_core::reactor::Handle;
 use url::form_urlencoded;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
@@ -100,7 +98,7 @@ impl FacebookApp {
         }
     }
 
-    pub fn handle_message(&self, handle: &Handle, message: &receive::MessageEntry) -> StringFuture {
+    pub fn handle_message(&self, message: &receive::MessageEntry) -> StringFuture {
         let id = message.recipient.id.clone();
         let mut message_callback = None;
         let mut access_token = None;
@@ -114,7 +112,7 @@ impl FacebookApp {
             }
         }
         let bot = Bot::new(
-            get_http_client(handle),
+            get_http_client(),
             &access_token.unwrap_or("".to_string()),
             &self.app_secret,
             &self.webhook_verify_token,
@@ -126,7 +124,7 @@ impl FacebookApp {
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
-fn get_http_client(handle: &Handle) -> hyper::Client<HttpsConnector> {
+fn get_http_client() -> hyper::Client<HttpsConnector> {
     let client = hyper::Client::builder().build(hyper_tls::HttpsConnector::new(4).unwrap());
 
     client
@@ -185,7 +183,7 @@ impl Bot {
         data: String,
         body: String,
     ) -> StringFuture {
-        let request_url = format!("{}{}{}", url, "?", data).parse().unwrap();
+        let request_url: String = format!("{}{}{}", url, "?", data).parse().unwrap();
         let mut request = Request::builder()
             .method("POST")
             .uri(request_url)
