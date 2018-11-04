@@ -5,7 +5,7 @@ use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham::helpers::http::response::create_response;
 use gotham::state::{FromState, State};
 use hyper;
-use hyper::{Body, Response, StatusCode};
+use hyper::{Body, Chunk, Response, StatusCode};
 use serde_json;
 
 use mime;
@@ -118,18 +118,19 @@ pub fn handle_webhook_post(mut state: State, app: FacebookApp) -> Box<HandlerFut
 
     let f = Body::take_from(&mut state)
         .concat2()
-        .and_then(move |body: Body| handle_webhook_body(&app, &body));
+        .and_then(move |body: Chunk| handle_webhook_body(&app, &body.into_bytes()))
+        .then(move |result| match result {
+            Ok(_) => {
+                let res = create_response(
+                    &state,
+                    StatusCode::OK,
+                    mime::TEXT_PLAIN,
+                    b"".to_vec(),
+                );
+                Ok((state, res))
+            }
+            Err(err) => Err((state, err.into_handler_error())),
+        });
 
-    Box::new(f.then(move |result| match result {
-        Ok(_) => {
-            let res = create_response(
-                &state,
-                StatusCode::OK,
-                mime::TEXT_PLAIN,
-                b"".to_vec(),
-            );
-            Ok((state, res))
-        }
-        Err(err) => Err((state, err.into_handler_error())),
-    }))
+    Box::new(f)
 }
