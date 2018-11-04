@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use url::form_urlencoded;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
-pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
+pub type StringFuture = Box<Future<Item = String, Error = hyper::Error> + Send>;
 
 #[derive(Clone)]
 pub struct FacebookPage {
@@ -184,7 +184,7 @@ impl Bot {
         body: String,
     ) -> StringFuture {
         let request_url: String = format!("{}{}{}", url, "?", data).parse().unwrap();
-        let mut request = Request::builder()
+        let request = Request::builder()
             .method("POST")
             .uri(request_url)
             .header("content type", "application/json")
@@ -193,7 +193,7 @@ impl Bot {
 
         let fut = client
             .request(request)
-            .and_then(|res| res.body().concat2())
+            .and_then(|res| res.into_body().concat2())
             .map(|c| String::from_utf8(c.to_vec()).unwrap());
         Box::new(fut)
     }
