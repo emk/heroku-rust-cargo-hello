@@ -158,6 +158,7 @@ impl Bot {
     }
 
     pub fn send_text_message(&self, recipient_id: &str, message: &str) -> StringFuture {
+        println!("about to send: {:?}", message);
         let payload = json!({
             "recipient": {"id": recipient_id},
             "message": {"text": message}
