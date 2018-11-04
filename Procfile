@@ -1,2 +1,2 @@
-web: ./target/release/hello
+web: ./target/debug/hello
 
