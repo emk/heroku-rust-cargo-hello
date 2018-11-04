@@ -108,6 +108,7 @@ pub fn handle_webhook_body(
     app: &FacebookApp,
     body: &[u8],
 ) -> impl Future<Item = Response<String>, Error = hyper::Error> {
+    println!("got payload: {}", String::from_utf8_lossy(body));
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
     handle_webhook_payload(&app, payload)
