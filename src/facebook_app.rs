@@ -1,26 +1,22 @@
-use futures::{future, Future, Stream};
-use gotham::handler::{Handler, HandlerFuture, NewHandler};
-use gotham::http::response::create_response;
-use gotham::state::FromState;
-use gotham::state::State;
-use hyper;
-use hyper::client::HttpConnector;
-use hyper::client::Request;
-use hyper::header::ContentType;
-use hyper::mime::APPLICATION_JSON;
-use hyper::{Method, StatusCode};
-use hyper_tls;
-use std::io;
-use tokio_core::reactor::Handle;
-use url::form_urlencoded;
-
 use crate::games;
 use crate::receive;
 use crate::verification;
+use futures::{future, Future, Stream};
+use gotham::handler::{Handler, HandlerFuture, NewHandler};
+use gotham::helpers::http::response::create_empty_response;
+use gotham::state::FromState;
+use gotham::state::State;
+use http::Request;
+use hyper;
+use hyper::client::HttpConnector;
+use hyper::{Body, Method, StatusCode};
+use hyper::header::{CONTENT_TYPE};
+use hyper_tls;
 use std::collections::HashMap;
+use url::form_urlencoded;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
-pub type StringFuture = Box<Future<Item = String, Error = hyper::Error>>;
+pub type StringFuture = Box<Future<Item = String, Error = hyper::Error> + Send>;
 
 #[derive(Clone)]
 pub struct FacebookPage {
@@ -46,18 +42,19 @@ pub struct FacebookApp {
 
 impl NewHandler for FacebookApp {
     type Instance = Self;
-    fn new_handler(&self) -> io::Result<Self::Instance> {
+    fn new_handler(&self) -> std::result::Result<FacebookApp, gotham::error::Error> {
         Ok(self.clone())
     }
 }
+
 impl Handler for FacebookApp {
     fn handle(self, state: State) -> Box<HandlerFuture> {
         let method = Method::borrow_from(&state).clone();
         match method {
-            Method::Post => receive::handle_webhook_post(state, self),
-            Method::Get => verification::handle_verification(state, self),
+            Method::POST => receive::handle_webhook_post(state, self),
+            Method::GET => verification::handle_verification(state, self),
             _ => {
-                let response = create_response(&state, StatusCode::MethodNotAllowed, None);
+                let response = create_empty_response(&state, StatusCode::METHOD_NOT_ALLOWED);
                 Box::new(future::ok((state, response)))
             }
         }
@@ -102,7 +99,7 @@ impl FacebookApp {
         }
     }
 
-    pub fn handle_message(&self, handle: &Handle, message: &receive::MessageEntry) -> StringFuture {
+    pub fn handle_message(&self, message: &receive::MessageEntry) -> StringFuture {
         let id = message.recipient.id.clone();
         let mut message_callback = None;
         let mut access_token = None;
@@ -116,7 +113,7 @@ impl FacebookApp {
             }
         }
         let bot = Bot::new(
-            get_http_client(handle),
+            get_http_client(),
             &access_token.unwrap_or("".to_string()),
             &self.app_secret,
             &self.webhook_verify_token,
@@ -128,10 +125,8 @@ impl FacebookApp {
 
 type HttpsConnector = hyper_tls::HttpsConnector<HttpConnector>;
 
-fn get_http_client(handle: &Handle) -> hyper::Client<HttpsConnector> {
-    let client = hyper::Client::configure()
-        .connector(hyper_tls::HttpsConnector::new(4, &handle).unwrap())
-        .build(&handle);
+fn get_http_client() -> hyper::Client<HttpsConnector> {
+    let client = hyper::Client::builder().build(hyper_tls::HttpsConnector::new(4).unwrap());
 
     client
 }
@@ -164,6 +159,7 @@ impl Bot {
     }
 
     pub fn send_text_message(&self, recipient_id: &str, message: &str) -> StringFuture {
+        println!("about to send: {:?}", message);
         let payload = json!({
             "recipient": {"id": recipient_id},
             "message": {"text": message}
@@ -189,14 +185,17 @@ impl Bot {
         data: String,
         body: String,
     ) -> StringFuture {
-        let request_url = format!("{}{}{}", url, "?", data).parse().unwrap();
-        let mut request = Request::new(Method::Post, request_url);
-        request.headers_mut().set(ContentType(APPLICATION_JSON));
-        request.set_body(body.to_owned());
+        let request_url: String = format!("{}{}{}", url, "?", data).parse().unwrap();
+        let request = Request::builder()
+            .method("POST")
+            .uri(request_url)
+            .header(CONTENT_TYPE, "application/json")
+            .body(Body::from(body.to_owned()))
+            .unwrap();
 
         let fut = client
             .request(request)
-            .and_then(|res| res.body().concat2())
+            .and_then(|res| res.into_body().concat2())
             .map(|c| String::from_utf8(c.to_vec()).unwrap());
         Box::new(fut)
     }

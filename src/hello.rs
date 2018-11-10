@@ -1,3 +1,5 @@
+#![feature(await_macro, async_await, futures_api)]
+
 extern crate futures;
 extern crate gotham;
 extern crate hyper;
@@ -58,7 +60,7 @@ fn router() -> Router {
     build_simple_router(|route| {
         let app = get_app();
         route
-            .request(vec![Method::Get, Method::Post], "/webhook")
+            .request(vec![Method::GET, Method::POST], "/webhook")
             .to_new_handler(app);
     })
 }
@@ -72,4 +74,46 @@ fn main() {
     ));
 
     gotham::start(addr, router());
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gotham::test::TestServer;
+
+    #[test]
+    fn get_request() {
+        let test_server = TestServer::new(router()).unwrap();
+        let response = test_server
+            .client()
+            .post(
+                "http://localhost/webhook",
+                r#"{
+                    "entry": [{
+                        "id": "446574812442849",
+                        "messaging": [{
+                            "message": {
+                                "mid": "J1mDvYbKMXep5gd33zTzsQ-qajMGJdQsNQ8WpXxuvnig0LlcPT9F3VX6HDICD5Cx-93JE8aBFjxWPJ-RjmJoRg",
+                                "seq": 20230,
+                                "text": "yo"
+                            },
+                            "recipient": {
+                                "id": "446574812442849"
+                            },
+                            "sender": {
+                                "id": "1614085592031831"
+                            },
+                            "timestamp": 1541364211913
+                        }],
+                        "time": 1541367254070
+                    }],
+                    "object": "page"
+                }"#,
+                mime::TEXT_PLAIN)
+            .perform()
+            .unwrap();
+
+        assert_eq!(response.status(), hyper::StatusCode::OK);
+    }
 }
