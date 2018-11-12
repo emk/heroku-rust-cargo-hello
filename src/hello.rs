@@ -1,5 +1,5 @@
 #![feature(await_macro, async_await, futures_api)]
-
+#![feature(trait_alias)]
 extern crate futures;
 extern crate gotham;
 extern crate hyper;

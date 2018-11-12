@@ -15,8 +15,10 @@ use hyper_tls;
 use std::collections::HashMap;
 use url::form_urlencoded;
 
-type MessageCallback = fn(&Bot, &receive::MessageEntry) -> StringFuture;
-pub type StringFuture = Box<Future<Item = String, Error = hyper::Error> + Send>;
+type MessageCallback = fn(&Bot, &receive::MessageEntry) -> BoxedStringFuture;
+
+pub trait StringFuture = Future<Item = String, Error = hyper::Error> + Send;
+pub type BoxedStringFuture = Box<StringFuture>;
 
 #[derive(Clone)]
 pub struct FacebookPage {
@@ -99,7 +101,7 @@ impl FacebookApp {
         }
     }
 
-    pub fn handle_message(&self, message: &receive::MessageEntry) -> StringFuture {
+    pub fn handle_message(&self, message: &receive::MessageEntry) -> BoxedStringFuture {
         let id = message.recipient.id.clone();
         let mut message_callback = None;
         let mut access_token = None;
@@ -158,7 +160,7 @@ impl Bot {
         }
     }
 
-    pub fn send_text_message(&self, recipient_id: &str, message: &str) -> StringFuture {
+    pub fn send_text_message(&self, recipient_id: &str, message: &str) -> BoxedStringFuture {
         println!("about to send: {:?}", message);
         let payload = json!({
             "recipient": {"id": recipient_id},
@@ -169,7 +171,7 @@ impl Bot {
     }
 
     /// send payload.
-    fn send_raw(&self, payload: String) -> StringFuture {
+    fn send_raw(&self, payload: String) -> BoxedStringFuture {
         let request_endpoint = format!("{}{}", self.graph_url, "/me/messages");
 
         let data = format!("{}{}", "access_token=", self.access_token).to_string();
@@ -184,7 +186,7 @@ impl Bot {
         url: String,
         data: String,
         body: String,
-    ) -> StringFuture {
+    ) -> BoxedStringFuture {
         let request_url: String = format!("{}{}{}", url, "?", data).parse().unwrap();
         let request = Request::builder()
             .method("POST")
