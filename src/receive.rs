@@ -98,7 +98,7 @@ pub fn handle_webhook_payload(
         println!("message sending done: {:?}", v);
         Ok("done".to_string())
     });
-    Box::new(response_future)
+    response_future
 }
 
 pub fn handle_webhook_body(
