@@ -17,7 +17,7 @@ use url::form_urlencoded;
 
 type MessageCallback = fn(&Bot, &receive::MessageEntry) -> BoxedStringFuture;
 
-trait StringFuture = Future<Item = String, Error = hyper::Error> + Send;
+pub trait StringFuture = Future<Item = String, Error = hyper::Error> + Send;
 pub type BoxedStringFuture = Box<StringFuture>;
 
 #[derive(Clone)]
