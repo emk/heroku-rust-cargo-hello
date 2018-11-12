@@ -4,13 +4,12 @@ use futures::{future, Future, Stream};
 use gotham::handler::{HandlerFuture, IntoHandlerError};
 use gotham::helpers::http::response::create_response;
 use gotham::state::{FromState, State};
-use hyper;
-use hyper::{Body, Chunk, Response, StatusCode};
+use hyper::{Body, Chunk, StatusCode};
 use serde_json;
 
 use mime;
 
-use crate::facebook_app::FacebookApp;
+use crate::facebook_app::{FacebookApp, StringFuture};
 
 /*
 The following structs are intended to represent the following webhook payload:
@@ -85,7 +84,7 @@ pub struct AuthorEntry {
 pub fn handle_webhook_payload(
     app: &FacebookApp,
     payload: WebhookPayload,
-) -> impl Future<Item = Response<String>, Error = hyper::Error> {
+) -> impl StringFuture {
     let mut message_futures = Vec::new();
     for entry in &payload.entry {
         for message in &entry.messaging {
@@ -95,11 +94,9 @@ pub fn handle_webhook_payload(
     }
     let joined_futures = future::join_all(message_futures);
 
-    let response_future = joined_futures.and_then(move |v| {
+    let response_future = joined_futures.and_then(|v| {
         println!("message sending done: {:?}", v);
-
-        let res = Response::new(serde_json::to_string(&payload).unwrap_or_default());
-        Ok(res)
+        Ok("done".to_string())
     });
     Box::new(response_future)
 }
@@ -107,7 +104,7 @@ pub fn handle_webhook_payload(
 pub fn handle_webhook_body(
     app: &FacebookApp,
     body: &[u8],
-) -> impl Future<Item = Response<String>, Error = hyper::Error> {
+) -> impl StringFuture {
     println!("got payload: {}", String::from_utf8_lossy(body));
     let payload: WebhookPayload = serde_json::from_slice(body).unwrap_or_default();
     println!("got payload: {:?}", payload);
